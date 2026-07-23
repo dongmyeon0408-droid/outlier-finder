@@ -234,6 +234,22 @@ body{transition:background .25s,color .25s}
 .idea .cp{margin-left:auto;font-size:12px;padding:5px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--slate)}
 .idea .cp:hover{border-color:var(--arc);color:var(--signal)}
 
+/* ── Version & Guide ── */
+.ver{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--signal);background:var(--gem-hover);padding:3px 9px;border-radius:999px;margin-left:8px;vertical-align:2px;letter-spacing:0}
+.gsec{margin-top:30px;padding-top:24px;border-top:1px dashed var(--line)}
+.gsec:first-of-type{margin-top:6px;padding-top:0;border-top:none}
+.gsec h3{font-family:var(--serif);font-size:19px;font-weight:600;margin-bottom:10px}
+.gsec p,.gsec li{color:var(--slate);font-size:14px;line-height:1.7;max-width:780px}
+.gsec p b,.gsec li b{color:var(--ink)}
+.gsec ol,.gsec ul{margin:8px 0 0 20px;display:flex;flex-direction:column;gap:6px}
+.gtable{width:100%;min-width:0;border-collapse:collapse;margin-top:14px;font-size:13px}
+.gtable th{cursor:default;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink);padding:10px 12px;background:var(--surface)}
+.gtable th:hover{color:var(--ink)}
+.gtable td{padding:10px 12px;font-size:13px;color:var(--slate);vertical-align:top}
+.gtable td:first-child{color:var(--ink);font-weight:500;white-space:nowrap}
+.gtable tr:hover td{background:transparent}
+.gk{font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:1px 7px;color:var(--ink)}
+
 @media(max-width:720px){
   .nav{padding:12px 20px;gap:10px}
   .quota{width:100%;text-align:right;margin:0}
@@ -248,11 +264,12 @@ body{transition:background .25s,color .25s}
 
 <!-- NAV -->
 <nav class="nav">
-  <span class="logo"><i></i>겨울잠 아웃라이어 파인더</span>
+  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v1.0</span></span>
   <div class="tabs">
     <button class="tab on" id="tabSearch" onclick="switchTab('search')">영상 발굴</button>
     <button class="tab" id="tabHot" onclick="switchTab('hot')">급상승 차트</button>
     <button class="tab" id="tabTrend" onclick="switchTab('trend')">키워드 트렌드</button>
+    <button class="tab" id="tabGuide" onclick="switchTab('guide')">가이드</button>
   </div>
   <span class="quota">오늘 쿼터 <b id="quotaUsed">0</b> / 10,000</span>
   <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="다크 모드">🌙</button>
@@ -359,6 +376,98 @@ body{transition:background .25s,color .25s}
   </div>
   <div class="dchart" id="demandChart"></div>
   <p class="hint">검증 루틴: 자동완성으로 <b>수요 문장</b> 발견 → Google 트렌드로 <b>상승·하락 추세</b> 확인 → 상승 중이면 「영상 발굴」로 넘어가 이미 터진 레퍼런스 수집. 제작 딜레이가 있어도 추세가 우상향인 키워드는 게시 시점에 더 커져 있습니다.</p>
+</section>
+</div>
+
+<!-- ═══ TAB 4: GUIDE ═══ -->
+<div class="panel" id="panelGuide">
+<section class="card">
+  <div class="eyebrow">사용 가이드 · v1.0 (2026.07)</div>
+
+  <div class="gsec">
+    <h3>이 앱이 찾는 것 — 아웃라이어</h3>
+    <p>유튜브에서 조회수는 보통 구독자 규모를 따라갑니다. 그런데 가끔 <b>구독자 1천 명 채널의 영상이 50만 회</b>가 나옵니다. 채널의 힘이 아니라 <b>제목·썸네일·소재 자체의 힘</b>으로 알고리즘이 밀어준 것 — 이것이 아웃라이어이고, 크리에이터에게 가장 확실한 벤치마킹 재료입니다. 이 앱은 그 영상만 걸러내는 도구입니다.</p>
+  </div>
+
+  <div class="gsec">
+    <h3>시작하기 (최초 1회)</h3>
+    <ol>
+      <li><b>Google Cloud Console</b>(console.cloud.google.com) → 새 프로젝트 → 「API 및 서비스 → 라이브러리」에서 <span class="gk">YouTube Data API v3</span> 사용 설정</li>
+      <li>「사용자 인증 정보 → API 키 만들기」 → <span class="gk">AIza...</span> 키 복사</li>
+      <li>이 앱 <b>Step 1</b>에 붙여넣고 저장 — 키는 이 브라우저에만 저장되며 외부 전송되지 않습니다. 저장 후 카드는 자동으로 접힙니다 (제목 클릭으로 다시 열기)</li>
+    </ol>
+  </div>
+
+  <div class="gsec">
+    <h3>4개 탭, 하나의 파이프라인</h3>
+    <table class="gtable">
+      <tr><th>탭</th><th>무엇을 하나</th><th>언제 쓰나</th><th>쿼터</th></tr>
+      <tr><td>키워드 트렌드</td><td>유튜브 자동완성을 채굴해 사람들이 지금 검색하는 문장을 발견. 🗺 키워드 맵은 8개 투자 축을 한 번에, 📊 검색량 검증은 최근 30일 상위 영상 조회수 합계를 막대로 비교</td><td>소재가 안 떠오를 때 — 파이프라인의 출발점</td><td>채굴 0 · 검증 회당 101</td></tr>
+      <tr><td>영상 발굴</td><td>키워드로 영상을 수집하고 구독자·총영상 대비 성과를 계산해 아웃라이어를 필터링</td><td>키워드가 정해졌을 때 레퍼런스 수집</td><td>회당 약 102~306</td></tr>
+      <tr><td>급상승 차트</td><td>인기 급상승 차트를 통째로 수집. 기본값 「소비형 콘텐츠만」은 뉴스·인물·교육·노하우·과기 5개 차트를 병합해 뮤직비디오 노이즈를 원천 차단</td><td>매일 아침 트렌드 스캔 — 쿼터가 거의 안 들어 데일리용</td><td>회당 약 10~15</td></tr>
+      <tr><td>콘텐츠 제안 (Step 4)</td><td>필터링된 상위 20개 패턴으로 새 콘텐츠 5개(제목·훅·구성·형식)를 제안. Gemini 키로 앱 내 생성하거나, 프롬프트 복사로 Claude·GPT 활용</td><td>레퍼런스 수집 후 기획으로 넘어갈 때 — 파이프라인의 종착점</td><td>0 (Gemini는 별도 무료)</td></tr>
+    </table>
+  </div>
+
+  <div class="gsec">
+    <h3>지표 사전</h3>
+    <table class="gtable">
+      <tr><th>지표</th><th>의미</th></tr>
+      <tr><td>성과배수 (×)</td><td>조회수 ÷ 구독자수. <b>×10 = 구독자의 10배가 봤다</b>는 뜻으로, 알고리즘이 외부 시청자에게 밀어줬다는 가장 직접적인 증거</td></tr>
+      <tr><td>성과도 등급</td><td>Great ≥10× · Good 3~10× · Normal 1~3× · Bad 0.3~1× · Worst &lt;0.3× — 뷰트랩의 성과도와 같은 원리</td></tr>
+      <tr><td>채널 총영상 🌱</td><td>제작자가 여태 올린 영상 수. <b>100개 이하(🌱)인데 터졌다면</b> 경험·구독자 없이 소재의 힘만으로 오른 것 — 가장 순도 높은 벤치마킹 대상</td></tr>
+      <tr><td>SHORTS 태그</td><td>3분 이하 영상. 쇼츠에서 터진 제목·훅 공식은 인스타 릴스에 거의 그대로 이식됩니다</td></tr>
+      <tr><td>수요 점수 (트렌드 탭)</td><td>최근 30일 게시된 상위 10개 영상의 조회수 합계 — 키워드에 지금 트래픽이 얼마나 몰리는지의 근사치</td></tr>
+    </table>
+  </div>
+
+  <div class="gsec">
+    <h3>필터·버튼 사전</h3>
+    <table class="gtable">
+      <tr><th>기능</th><th>동작</th></tr>
+      <tr><td>💎 숨은 보석</td><td>구독자 1만 이하 + Great(10배↑)만 남기는 원클릭 — 소형 채널 히트작 전용</td></tr>
+      <tr><td>💎 소형채널 히트작만</td><td>급상승 탭 전용: 구독 5만 이하 + 채널 총영상 100개 이하 — "초심자인데 차트에 오른" 영상만</td></tr>
+      <tr><td>🎵 노이즈 제거</td><td>음악·MV·영화·스포츠·엔터 카테고리를 결과에서 제외 (모든 탭 공통)</td></tr>
+      <tr><td>정렬</td><td>표 머리글(조회수·구독자·총영상·배수·게시일) 클릭 — 다시 클릭하면 역순</td></tr>
+      <tr><td>⬇ CSV / 📋 제목 복사</td><td>결과를 엑셀용 CSV로 저장, 또는 제목 목록(배수·총영상 포함)을 클립보드로 — 제목 벤치마킹 노트용</td></tr>
+      <tr><td>🌙 다크 모드</td><td>우측 상단 토글 — 설정은 자동 저장</td></tr>
+      <tr><td>결과 보존</td><td>탭별 마지막 결과와 검색어는 자동 저장되어 탭 이동·새로고침·재접속에도 유지 (탭당 400개까지). 새로 검색할 때만 갱신</td></tr>
+    </table>
+  </div>
+
+  <div class="gsec">
+    <h3>쿼터 이해하기</h3>
+    <p>YouTube API는 <b>하루 10,000유닛 무료</b>이며 한국시간 오후 4~5시경 초기화됩니다. 상단 카운터가 오늘 사용량입니다.</p>
+    <table class="gtable">
+      <tr><th>작업</th><th>소모량</th><th>하루 가능 횟수</th></tr>
+      <tr><td>급상승 차트 (소비형)</td><td>약 10~15유닛</td><td>사실상 무제한</td></tr>
+      <tr><td>키워드 검색 100개 수집</td><td>약 205유닛</td><td>약 48회</td></tr>
+      <tr><td>검색량 검증 (키워드 1개)</td><td>101유닛</td><td>약 99회</td></tr>
+      <tr><td>자동완성 채굴 · 키워드 맵</td><td>0유닛</td><td>무제한</td></tr>
+    </table>
+  </div>
+
+  <div class="gsec">
+    <h3>추천 루틴 — 아침 5분</h3>
+    <ol>
+      <li><b>급상승 차트</b> → 불러오기 → 💎 소형채널 히트작만 → 🌱 영상 제목·썸네일 훑기 <span class="gk">~15유닛</span></li>
+      <li>눈에 띈 소재를 <b>키워드 트렌드</b>에서 채굴 → 3~5개 선택 → 📊 검색량 검증으로 수요 순위 확인 <span class="gk">~500유닛</span></li>
+      <li>1위 키워드로 <b>💎 영상 발굴</b> → 터진 레퍼런스 수집 <span class="gk">~205유닛</span></li>
+      <li><b>Step 4</b>에서 제안 5개 생성 → 마음에 드는 것을 복사해 대본 작업 시작 <span class="gk">0유닛</span></li>
+    </ol>
+    <p style="margin-top:10px">제작 딜레이가 걱정되면 Google 트렌드 12개월 버튼으로 <b>우상향 추세</b>인지 확인하세요 — 상승 중인 키워드는 게시 시점에 수요가 더 커져 있습니다.</p>
+  </div>
+
+  <div class="gsec">
+    <h3>문제 해결</h3>
+    <table class="gtable">
+      <tr><th>증상</th><th>해결</th></tr>
+      <tr><td>API 키 오류 (400/403)</td><td>키 오타 확인 → Cloud Console에서 YouTube Data API v3가 「사용 설정」인지 확인 → 웹사이트 제한을 걸었다면 <span class="gk">https://dongmyeon0408-droid.github.io/*</span>가 등록됐는지 확인</td></tr>
+      <tr><td>쿼터 초과</td><td>한국시간 오후 4~5시 초기화까지 대기. 그동안 자동완성·키워드 맵·보존된 결과는 계속 사용 가능</td></tr>
+      <tr><td>자동완성 채굴 실패</td><td>회사 사내망 등에서 구글 자동완성 엔드포인트가 차단된 경우 — 집·모바일 네트워크에서 시도</td></tr>
+      <tr><td>Gemini 생성 실패</td><td>aistudio.google.com에서 키 재확인. 급하면 「프롬프트만 복사」로 Claude·GPT에 붙여넣기</td></tr>
+    </table>
+  </div>
 </section>
 </div>
 
@@ -518,15 +627,15 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
 });
 function switchTab(t){
-  ['Search','Hot','Trend'].forEach(n=>{
+  ['Search','Hot','Trend','Guide'].forEach(n=>{
     document.getElementById('tab'+n).classList.toggle('on',t===n.toLowerCase());
     document.getElementById('panel'+n).classList.toggle('on',t===n.toLowerCase());
   });
-  const vidOnly=t==='trend'?'none':'';
+  const vidOnly=(t==='trend'||t==='guide')?'none':'';
   document.getElementById('filterCard').style.display=vidOnly;
   document.getElementById('summary').style.display=vidOnly;
   document.getElementById('tblCard').style.display=vidOnly;
-  document.getElementById('ideaCard').style.display=(t==='trend'||!allVideos.length)?'none':'';
+  document.getElementById('ideaCard').style.display=(vidOnly==='none'||!allVideos.length)?'none':'';
   if(t==='search'||t==='hot'){
     currentMode=t;
     const d=tabData[t];
