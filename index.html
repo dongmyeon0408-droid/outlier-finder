@@ -11,6 +11,11 @@
 :root{
   --canvas:#F3F0EE;      /* 캔버스 크림 */
   --lifted:#FCFBFA;      /* 리프티드 크림 */
+  --surface:#FFFFFF;     /* 입력·칩 표면 */
+  --line:rgba(20,20,19,.2);
+  --line-soft:rgba(20,20,19,.07);
+  --row-hover:#F7F4F1;
+  --gem-hover:#FDF1EA;
   --ink:#141413;         /* 잉크 블랙 */
   --charcoal:#262627;
   --slate:#696969;
@@ -34,7 +39,7 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;backg
 .wrap{max-width:1280px;margin:0 auto;padding:0 24px 96px}
 
 /* ── Floating pill nav ── */
-.nav{position:sticky;top:16px;z-index:50;margin:16px auto 0;max-width:1120px;background:#fff;border-radius:999px;box-shadow:var(--sh1);display:flex;align-items:center;gap:20px;padding:14px 32px;flex-wrap:wrap}
+.nav{position:sticky;top:16px;z-index:50;margin:16px auto 0;max-width:1120px;background:var(--surface);border-radius:999px;box-shadow:var(--sh1);display:flex;align-items:center;gap:20px;padding:14px 32px;flex-wrap:wrap}
 .logo{font-weight:700;font-size:17px;letter-spacing:-.34px;white-space:nowrap}
 .logo i{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--arc);margin-right:8px}
 .tabs{display:flex;gap:6px;margin-left:8px}
@@ -60,7 +65,7 @@ body{font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;backg
 .panel.on{display:block}
 
 /* ── Inputs & buttons ── */
-input,select{font:inherit;font-weight:450;padding:11px 20px;border:1px solid rgba(20,20,19,.25);border-radius:999px;background:#fff;color:var(--ink);outline:none;transition:border-color .15s}
+input,select{font:inherit;font-weight:450;padding:11px 20px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);outline:none;transition:border-color .15s}
 input:focus,select:focus{border-color:var(--ink)}
 input[type=number]{width:118px;font-family:var(--mono);font-size:13px}
 input[type=password],input[type=text].wide{letter-spacing:normal}
@@ -69,7 +74,7 @@ button{font:inherit;cursor:pointer;transition:.15s}
 .btn-ink{background:var(--ink);color:var(--canvas)}
 .btn-ink:hover{background:var(--charcoal)}
 .btn-ink:disabled{background:#8a8a88;border-color:#8a8a88;cursor:wait}
-.btn-out{background:#fff;color:var(--ink)}
+.btn-out{background:var(--surface);color:var(--ink)}
 .btn-out:hover{background:var(--canvas)}
 .btn-out.on{background:var(--ink);color:var(--canvas)}
 
@@ -82,7 +87,7 @@ button{font:inherit;cursor:pointer;transition:.15s}
 
 /* ── Chips ── */
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;align-items:center}
-.chip{font-size:13px;font-weight:500;padding:7px 16px;border-radius:999px;background:#fff;border:1px solid rgba(20,20,19,.18);cursor:pointer}
+.chip{font-size:13px;font-weight:500;padding:7px 16px;border-radius:999px;background:var(--surface);border:1px solid var(--line);cursor:pointer}
 .chip:hover{border-color:var(--arc);color:var(--signal)}
 
 /* ── Filters ── */
@@ -91,14 +96,14 @@ button{font:inherit;cursor:pointer;transition:.15s}
 .fg label{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--slate)}
 .range{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--slate)}
 .gset{display:flex;gap:5px;flex-wrap:wrap}
-.gbtn{font-size:12px;font-weight:700;padding:7px 13px;border-radius:999px;border:1px solid rgba(20,20,19,.18);background:#fff;color:var(--slate)}
+.gbtn{font-size:12px;font-weight:700;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--slate)}
 .gbtn.on.g-great{background:var(--great-bg);color:var(--great);border-color:var(--great)}
 .gbtn.on.g-good{background:var(--good-bg);color:var(--good);border-color:var(--good)}
 .gbtn.on.g-normal{background:var(--normal-bg);color:var(--normal);border-color:var(--normal)}
 .gbtn.on.g-bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
 .gbtn.on.g-worst{background:var(--worst-bg);color:var(--worst);border-color:var(--worst)}
-.gem{border-color:var(--arc);color:var(--signal);background:#fff;font-weight:700;font-size:13px;padding:9px 18px;border-radius:999px;border:1.5px solid var(--arc)}
-.gem:hover{background:#FDF1EA}
+.gem{border-color:var(--arc);color:var(--signal);background:var(--surface);font-weight:700;font-size:13px;padding:9px 18px;border-radius:999px;border:1.5px solid var(--arc)}
+.gem:hover{background:var(--gem-hover)}
 
 /* ── Status / error ── */
 #status{margin-top:24px;font-size:14px;color:var(--slate);display:none}
@@ -124,15 +129,15 @@ button{font:inherit;cursor:pointer;transition:.15s}
 .tbl-head .cnt b{font-family:var(--mono);color:var(--signal)}
 .tbl-scroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse;min-width:1060px}
-th{font-size:12px;color:var(--slate);font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:left;padding:12px 14px;border-bottom:1px solid rgba(20,20,19,.1);white-space:nowrap;cursor:pointer;user-select:none}
+th{font-size:12px;color:var(--slate);font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
 th:hover{color:var(--ink)}
 th .arr{font-size:10px;color:var(--signal)}
-td{padding:14px;border-bottom:1px solid rgba(20,20,19,.06);vertical-align:middle}
-tr:hover td{background:#F7F4F1}
+td{padding:14px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tr:hover td{background:var(--row-hover)}
 tr:last-child td{border-bottom:none}
 .thumb{width:128px;min-width:128px;display:block;position:relative}
 .thumb img{width:128px;height:72px;object-fit:cover;border-radius:20px;display:block;background:var(--ghost)}
-.thumb .sat{position:absolute;right:-8px;bottom:-8px;width:30px;height:30px;border-radius:50%;background:#fff;box-shadow:var(--sh1);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink)}
+.thumb .sat{position:absolute;right:-8px;bottom:-8px;width:30px;height:30px;border-radius:50%;background:var(--surface);box-shadow:var(--sh1);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink)}
 .dur{position:absolute;left:8px;bottom:6px;background:rgba(20,20,19,.85);color:#fff;font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:999px}
 .shorts-tag{position:absolute;left:8px;top:6px;background:var(--signal);color:#fff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
 .title a{color:var(--ink);font-weight:500;letter-spacing:-.2px;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:360px}
@@ -163,7 +168,7 @@ footer b{font-family:var(--serif);font-weight:600}
 
 /* ── Trend tab ── */
 .kwcloud{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}
-.kw{font-size:14px;font-weight:500;padding:9px 18px;border-radius:999px;background:#fff;border:1px solid rgba(20,20,19,.18);cursor:pointer;transition:.12s}
+.kw{font-size:14px;font-weight:500;padding:9px 18px;border-radius:999px;background:var(--surface);border:1px solid var(--line);cursor:pointer;transition:.12s}
 .kw:hover{border-color:var(--arc)}
 .kw.sel{background:var(--ink);color:var(--canvas);border-color:var(--ink)}
 .kw .lv2{color:var(--slate);font-size:11px;margin-left:5px}
@@ -172,6 +177,63 @@ footer b{font-family:var(--serif);font-weight:600}
 .sel-note{font-size:13px;color:var(--slate)}
 .sel-note b{color:var(--signal);font-family:var(--mono)}
 .tr-empty{color:var(--dust);font-size:14px;margin-top:20px}
+/* ── Dark theme ── */
+body[data-theme=dark]{
+  --canvas:#131211;--lifted:#1C1A18;--surface:#26231F;
+  --ink:#F3F0EE;--charcoal:#DDD7CF;
+  --slate:#A19A91;--dust:#575049;--ghost:#221E1A;
+  --line:rgba(243,240,238,.18);--line-soft:rgba(243,240,238,.07);
+  --row-hover:#232019;--gem-hover:#2E241C;
+  --great:#5FCE8B;--great-bg:#15291C;
+  --good:#6BC97E;--good-bg:#182E1E;
+  --normal:#A19A91;--normal-bg:#282521;
+  --bad:#F08A54;--bad-bg:#38210F;
+  --worst:#E8746A;--worst-bg:#381814;
+  --link:#8FA9E8;
+  --sh1:rgba(0,0,0,.4) 0px 4px 24px 0px;
+  --sh2:rgba(0,0,0,.55) 0px 24px 48px 0px;
+}
+body{transition:background .25s,color .25s}
+.theme-btn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:16px;display:flex;align-items:center;justify-content:center;padding:0}
+.theme-btn:hover{border-color:var(--arc)}
+
+/* ── API collapse ── */
+#keyCard .eyebrow{cursor:pointer;user-select:none}
+#keyCard .chev{margin-left:auto;font-size:12px;color:var(--slate);transition:transform .2s}
+#keyCard.closed .chev{transform:rotate(-90deg)}
+#keyCard.closed #keyBody{display:none}
+#keyCard.closed{padding:20px 32px}
+
+/* ── Keyword map ── */
+.kwgroup{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line)}
+.kwgroup:first-child{border-top:none;padding-top:0}
+.kwseed{font-family:var(--serif);font-weight:600;font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.kwseed::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--arc)}
+.kwseed .rank1{font-size:11px;font-weight:700;color:var(--signal);font-family:'Pretendard Variable',sans-serif}
+
+/* ── Demand chart ── */
+.dchart{margin-top:24px;display:none;flex-direction:column;gap:12px}
+.dchart.show{display:flex}
+.dchart h4{font-family:var(--serif);font-weight:600;font-size:16px}
+.dchart .dnote{font-size:12px;color:var(--slate)}
+.drow{display:flex;align-items:center;gap:14px}
+.drow .dk{width:170px;font-size:13px;font-weight:500;text-align:right;letter-spacing:-.2px}
+.drow .dtrack{flex:1;height:30px;background:var(--surface);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.drow .dfill{height:100%;background:linear-gradient(90deg,var(--arc),var(--signal));border-radius:999px;display:flex;align-items:center;justify-content:flex-end;padding-right:12px;color:#fff;font-family:var(--mono);font-size:11px;font-weight:700;min-width:56px;transition:width .6s ease}
+
+/* ── Idea cards ── */
+.idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:24px}
+.idea{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:10px}
+.idea .no{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--signal)}
+.idea h3{font-family:var(--serif);font-weight:600;font-size:18px;line-height:1.35;letter-spacing:-.2px}
+.idea .hook{font-size:13px;color:var(--slate);font-style:italic}
+.idea ul{margin:4px 0 0 18px;font-size:13px;color:var(--ink);display:flex;flex-direction:column;gap:5px}
+.idea .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:10px;align-items:center}
+.idea .fmt{font-size:11px;font-weight:700;padding:4px 12px;border-radius:999px;background:var(--gem-hover);color:var(--signal)}
+.idea .ref{font-size:11px;color:var(--slate)}
+.idea .cp{margin-left:auto;font-size:12px;padding:5px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--slate)}
+.idea .cp:hover{border-color:var(--arc);color:var(--signal)}
+
 @media(max-width:720px){
   .nav{padding:12px 20px;gap:10px}
   .quota{width:100%;text-align:right;margin:0}
@@ -193,6 +255,7 @@ footer b{font-family:var(--serif);font-weight:600}
     <button class="tab" id="tabTrend" onclick="switchTab('trend')">키워드 트렌드</button>
   </div>
   <span class="quota">오늘 쿼터 <b id="quotaUsed">0</b> / 10,000</span>
+  <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="다크 모드">🌙</button>
 </nav>
 
 <!-- HERO -->
@@ -204,13 +267,15 @@ footer b{font-family:var(--serif);font-weight:600}
 
 <!-- API KEY -->
 <section class="card" id="keyCard">
-  <div class="eyebrow">Step 1 · API 연결<span class="key-ok" id="keyOk" style="display:none">✓ 연결됨</span></div>
+  <div class="eyebrow" onclick="toggleKeyCard()">Step 1 · API 연결<span class="key-ok" id="keyOk" style="display:none">✓ 연결됨</span><span class="chev">▼</span></div>
+  <div id="keyBody">
   <div class="row">
     <input type="password" id="apiKey" class="grow" placeholder="AIza... 로 시작하는 API 키 붙여넣기">
     <button class="btn btn-ink" onclick="saveKey()">저장</button>
     <button class="btn btn-out" onclick="toggleKey()">보기</button>
   </div>
   <p class="hint">발급: <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> → YouTube Data API v3 사용 설정 → 사용자 인증 정보 → API 키. 키는 이 브라우저에만 저장됩니다.</p>
+  </div>
 </section>
 
 <!-- ═══ TAB 1: SEARCH ═══ -->
@@ -250,7 +315,8 @@ footer b{font-family:var(--serif);font-weight:600}
   <p style="color:var(--slate);margin-bottom:18px;max-width:640px">유튜브 인기 급상승 차트를 통째로 불러온 뒤, <b style="color:var(--ink)">구독자 적고 · 올린 영상도 적은데 · 차트에 오른</b> 진짜 아웃라이어만 필터로 걸러냅니다. 쿼터 소모가 거의 없어(회당 약 5유닛) 부담 없이 매일 돌려도 됩니다.</p>
   <div class="row">
     <select id="hotCat">
-      <option value="" selected>전체 카테고리</option>
+      <option value="consume" selected>✦ 소비형 콘텐츠만 (뉴스·인물·교육·노하우·과기)</option>
+      <option value="">전체 카테고리</option>
       <option value="25">뉴스·정치</option>
       <option value="22">인물·블로그</option>
       <option value="27">교육</option>
@@ -279,17 +345,19 @@ footer b{font-family:var(--serif);font-weight:600}
   <div class="row">
     <input id="seedKw" class="grow" placeholder="시드 키워드 (예: 미국주식, 금리, 아파트)" onkeydown="if(event.key==='Enter')mineKeywords()">
     <button class="btn btn-ink" id="mineBtn" onclick="mineKeywords()">자동완성 채굴</button>
+    <button class="gem" id="mapBtn" onclick="mineMap()">🗺 투자 키워드 맵 한번에</button>
   </div>
   <div class="chips" id="seedPresets"></div>
-  <div id="kwResult" class="kwcloud"></div>
-  <p class="tr-empty" id="kwEmpty">키워드를 채굴하면 이곳에 연관 검색어 구름이 나타납니다. 칩을 눌러 최대 5개까지 선택하세요.</p>
+  <div id="kwResult"></div>
+  <p class="tr-empty" id="kwEmpty">「🗺 투자 키워드 맵」을 누르면 월급·연금·대출·절세·미국주식·아파트·비트코인·노후 8개 축의 연관 검색어가 인기순으로 한눈에 펼쳐집니다. 칩을 눌러 최대 5개까지 선택하세요.</p>
   <div class="trend-actions" id="kwActions" style="display:none">
     <span class="sel-note">선택 <b id="selCnt">0</b>/5</span>
-    <button class="btn btn-ink" onclick="openTrends('now 7-d')">Google 트렌드 비교 · 7일</button>
-    <button class="btn btn-out" onclick="openTrends('today 1-m')">30일</button>
+    <button class="btn btn-ink" onclick="verifyDemand()" id="demandBtn">📊 검색량 검증 (회당 101유닛)</button>
+    <button class="btn btn-out" onclick="openTrends('now 7-d')">Google 트렌드 7일</button>
     <button class="btn btn-out" onclick="openTrends('today 12-m')">12개월</button>
     <button class="gem" onclick="mineToSearch()">💎 이 키워드로 영상 발굴</button>
   </div>
+  <div class="dchart" id="demandChart"></div>
   <p class="hint">검증 루틴: 자동완성으로 <b>수요 문장</b> 발견 → Google 트렌드로 <b>상승·하락 추세</b> 확인 → 상승 중이면 「영상 발굴」로 넘어가 이미 터진 레퍼런스 수집. 제작 딜레이가 있어도 추세가 우상향인 키워드는 게시 시점에 더 커져 있습니다.</p>
 </section>
 </div>
@@ -327,6 +395,10 @@ footer b{font-family:var(--serif);font-weight:600}
         <button class="btn btn-out" id="fShorts" onclick="setForm('shorts')" style="padding:7px 16px;font-size:13px">Shorts</button>
         <button class="btn btn-out" id="fLong" onclick="setForm('long')" style="padding:7px 16px;font-size:13px">롱폼</button>
       </div>
+    </div>
+    <div class="fg">
+      <label>노이즈 제거</label>
+      <button class="btn btn-out" id="fNoise" onclick="toggleNoise()" style="padding:7px 16px;font-size:13px">🎵 음악·MV·영화·스포츠 제외</button>
     </div>
     <div class="fg">
       <label>원클릭</label>
@@ -373,6 +445,22 @@ footer b{font-family:var(--serif);font-weight:600}
   <div class="empty" id="emptyMsg" style="display:none">조건에 맞는 영상이 없습니다. 필터를 조정해 보세요.</div>
 </section>
 
+<!-- STEP 4: AI 콘텐츠 제안 -->
+<section class="card" id="ideaCard" style="display:none">
+  <div class="eyebrow">Step 4 · 콘텐츠 제안</div>
+  <p style="color:var(--slate);margin-bottom:18px;max-width:680px">지금 필터링된 결과의 <b style="color:var(--ink)">상위 20개 영상 패턴</b>을 읽어, 당신이 새로 만들면 좋을 제목·구성 5가지를 제안받습니다.</p>
+  <div class="row" id="gmKeyRow">
+    <input type="password" id="gmKey" class="grow" placeholder="Gemini API 키 (aistudio.google.com에서 무료 발급)">
+    <button class="btn btn-out" onclick="saveGmKey()">키 저장</button>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <button class="btn btn-ink" id="ideaBtn" onclick="generateIdeas()">✍ 제안 5개 생성</button>
+    <button class="btn btn-out" onclick="copyIdeaPrompt()">📋 프롬프트만 복사 (Claude·GPT에 붙여넣기)</button>
+  </div>
+  <p class="hint">Gemini 키가 없어도 됩니다 — 「프롬프트만 복사」를 누르면 데이터가 포함된 완성 프롬프트가 복사되니, 평소 쓰는 Claude나 ChatGPT에 붙여넣으세요.</p>
+  <div class="idea-grid" id="ideaGrid"></div>
+</section>
+
 <footer>
   <b>터지는 콘텐츠에는, 이유가 있습니다.</b>
   <span>겨울잠 아웃라이어 파인더 · YouTube Data API v3 · 모든 데이터는 당신의 브라우저 안에서만 처리됩니다 · 🌱 표시는 총영상 100개 이하 — 채널의 힘이 아니라 콘텐츠의 힘으로 오른 영상입니다</span>
@@ -384,22 +472,50 @@ footer b{font-family:var(--serif);font-weight:600}
 let API_KEY='';
 let allVideos=[], viewList=[];
 let sortKey='mult', sortDir=-1, formMode='all', quotaUsed=0;
+let currentMode='search';
+const tabData={search:null,hot:null};   // 탭별 마지막 결과 보존
+function persistTab(mode){
+  try{
+    const d=tabData[mode];
+    if(!d)return;
+    const slim={...d,videos:d.videos.slice(0,400)}; // 저장 용량 보호
+    store('res_'+mode,JSON.stringify(slim));
+  }catch(e){/* 용량 초과 시 무시 — 메모리 보존은 유지됨 */}
+}
+function restoreTabs(){
+  ['search','hot'].forEach(m=>{
+    try{
+      const d=JSON.parse(load('res_'+m)||'null');
+      if(d&&Array.isArray(d.videos)&&d.videos.length)tabData[m]=d;
+    }catch(e){}
+  });
+}
 const mem={};
 function store(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
 function load(k){try{return localStorage.getItem(k)??mem[k]??''}catch(e){return mem[k]??''}}
 
 /* ───────── init ───────── */
-const PRESET_KW=['미국주식','국장','아파트 투자','금리','환율','ISA','연금저축','배당주','비트코인','공모주','부동산 경매','파이어족'];
+const PRESET_KW=['월급','퇴사','노후 준비','국민연금','연금저축','ISA','전세사기','대출 금리','연말정산','절세','부업','무지출','미국주식','배당주','비트코인','아파트 청약'];
 window.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('presets').innerHTML =
     PRESET_KW.map(k=>`<span class="chip" onclick="document.getElementById('kw').value='${k}';runSearch()">${k}</span>`).join('');
   document.getElementById('seedPresets').innerHTML =
     PRESET_KW.map(k=>`<span class="chip" onclick="document.getElementById('seedKw').value='${k}';mineKeywords()">${k}</span>`).join('');
   API_KEY=load('yt_api_key');
-  if(API_KEY){document.getElementById('apiKey').value=API_KEY;keyOk();}
+  if(API_KEY){document.getElementById('apiKey').value=API_KEY;keyOk();document.getElementById('keyCard').classList.add('closed');}
+  if(load('theme')==='dark')setTheme('dark');
+  const gm=load('gm_api_key');
+  if(gm)document.getElementById('gmKey').value=gm;
   const today=new Date().toISOString().slice(0,10);
   if(load('quota_date')===today) quotaUsed=Number(load('quota_used')||0);
   updQuota(0);
+  // 지난 검색 결과 복원 (새로고침·재접속에도 유지)
+  restoreTabs();
+  if(tabData.search){
+    allVideos=tabData.search.videos;
+    if(tabData.search.kw)document.getElementById('kw').value=tabData.search.kw;
+    applyFilters();
+  }
 });
 function switchTab(t){
   ['Search','Hot','Trend'].forEach(n=>{
@@ -410,12 +526,35 @@ function switchTab(t){
   document.getElementById('filterCard').style.display=vidOnly;
   document.getElementById('summary').style.display=vidOnly;
   document.getElementById('tblCard').style.display=vidOnly;
+  document.getElementById('ideaCard').style.display=(t==='trend'||!allVideos.length)?'none':'';
+  if(t==='search'||t==='hot'){
+    currentMode=t;
+    const d=tabData[t];
+    if(d&&d.videos&&d.videos.length){
+      allVideos=d.videos;
+      if(t==='search'&&d.kw)document.getElementById('kw').value=d.kw;
+      applyFilters();
+    }else{
+      allVideos=[];viewList=[];
+      document.getElementById('tblCard').classList.remove('show');
+      document.getElementById('summary').classList.remove('show');
+      document.getElementById('ideaCard').style.display='none';
+    }
+  }
 }
 function saveKey(){
   API_KEY=document.getElementById('apiKey').value.trim();
   if(!API_KEY){showErr('API 키를 입력해 주세요.');return;}
   store('yt_api_key',API_KEY);keyOk();hideErr();
+  document.getElementById('keyCard').classList.add('closed');
 }
+function toggleKeyCard(){document.getElementById('keyCard').classList.toggle('closed');}
+function setTheme(t){
+  document.body.dataset.theme=t;
+  document.getElementById('themeBtn').textContent=t==='dark'?'☀️':'🌙';
+  store('theme',t);
+}
+function toggleTheme(){setTheme(document.body.dataset.theme==='dark'?'light':'dark');}
 function keyOk(){document.getElementById('keyOk').style.display='inline';}
 function toggleKey(){const i=document.getElementById('apiKey');i.type=i.type==='password'?'text':'password';}
 function updQuota(add){
@@ -489,6 +628,7 @@ async function enrichChannels(videos){
       id:v.id,title:v.snippet.title,channel:v.snippet.channelTitle,
       thumb:v.snippet.thumbnails?.medium?.url||v.snippet.thumbnails?.default?.url||'',
       views,subs:ch.subs,vidCount:ch.vids,mult,g:grade(mult),
+      catId:v.snippet.categoryId||'',
       dur,isShorts:dur>0&&dur<=180,
       date:v.snippet.publishedAt.slice(0,10)
     };
@@ -538,6 +678,7 @@ async function runSearch(){
     }
     setStatus('채널 정보(구독자·총영상) 수집 중...',80);
     allVideos=await enrichChannels(videos);
+    tabData.search={videos:allVideos,kw};persistTab('search');currentMode='search';
     setStatus(null);
     applyFilters();
   }catch(e){setStatus(null);showErr(e.message);}
@@ -553,25 +694,38 @@ async function runHot(){
   try{
     const cat=document.getElementById('hotCat').value;
     const maxPages=Number(document.getElementById('hotPages').value);
-    let videos=[],pageToken='';
-    for(let p=0;p<maxPages;p++){
-      setStatus(`인기 급상승 차트 불러오는 중... (${p+1}/${maxPages})`,(p/maxPages)*60);
-      const u=new URL('https://www.googleapis.com/youtube/v3/videos');
-      u.search=new URLSearchParams({
-        key:API_KEY,part:'snippet,statistics,contentDetails',
-        chart:'mostPopular',regionCode:'KR',maxResults:'50',
-        ...(cat?{videoCategoryId:cat}:{}),...(pageToken?{pageToken}:{})
-      });
-      const r=await fetch(u);const j=await r.json();
-      if(j.error)throw new Error(apiErrMsg(j.error));
-      updQuota(1);
-      videos.push(...j.items);
-      pageToken=j.nextPageToken;
-      if(!pageToken)break;
+    // 소비형 모드: 뉴스·인물·교육·노하우·과기 5개 카테고리 차트를 각각 불러와 병합
+    const cats = cat==='consume' ? ['25','22','27','26','28'] : [cat];
+    let videos=[]; const seenIds=new Set();
+    let step=0, total=cats.length*(cat==='consume'?Math.min(maxPages,2):maxPages);
+    for(const c of cats){
+      let pageToken='';
+      const pagesForCat = cat==='consume'?Math.min(maxPages,2):maxPages;
+      for(let p=0;p<pagesForCat;p++){
+        step++;
+        setStatus(`인기 급상승 차트 불러오는 중... (${step}/${total})`,(step/total)*60);
+        const u=new URL('https://www.googleapis.com/youtube/v3/videos');
+        u.search=new URLSearchParams({
+          key:API_KEY,part:'snippet,statistics,contentDetails',
+          chart:'mostPopular',regionCode:'KR',maxResults:'50',
+          ...(c?{videoCategoryId:c}:{}),...(pageToken?{pageToken}:{})
+        });
+        const r=await fetch(u);const j=await r.json();
+        if(j.error){
+          // 일부 카테고리는 차트 미제공(404) — 건너뜀
+          if(j.error.code===404){break;}
+          throw new Error(apiErrMsg(j.error));
+        }
+        updQuota(1);
+        j.items.forEach(v=>{if(!seenIds.has(v.id)){seenIds.add(v.id);videos.push(v);}});
+        pageToken=j.nextPageToken;
+        if(!pageToken)break;
+      }
     }
     if(!videos.length)throw new Error('차트 데이터를 불러오지 못했습니다.');
     setStatus('채널 정보(구독자·총영상) 수집 중...',80);
     allVideos=await enrichChannels(videos);
+    tabData.hot={videos:allVideos};persistTab('hot');currentMode='hot';
     setStatus(null);
     applyFilters();
   }catch(e){setStatus(null);showErr(e.message);}
@@ -588,6 +742,13 @@ function hotGem(){
 }
 
 /* ───────── filters ───────── */
+const NOISE_CATS=new Set(['1','10','17','24','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44']); // 영화·음악·스포츠·엔터·영화장르군
+let noiseOff=false;
+function toggleNoise(){
+  noiseOff=!noiseOff;
+  document.getElementById('fNoise').classList.toggle('on',noiseOff);
+  applyFilters();
+}
 function toggleGrade(btn){btn.classList.toggle('on');applyFilters();}
 function setForm(mode){
   formMode=mode;
@@ -613,6 +774,7 @@ function applyFilters(){
     (subMin===null||v.subs>=subMin)&&(subMax===null||v.subs<=subMax)&&
     (viewMin===null||v.views>=viewMin)&&(viewMax===null||v.views<=viewMax)&&
     (vidMax===null||v.vidCount<=vidMax)&&
+    (!noiseOff||!NOISE_CATS.has(v.catId))&&
     grades.has(v.g)&&
     (formMode==='all'||(formMode==='shorts'&&v.isShorts)||(formMode==='long'&&!v.isShorts))
   );
@@ -634,6 +796,7 @@ function sortList(){
 function render(){
   document.getElementById('tblCard').classList.add('show');
   document.getElementById('summary').classList.add('show');
+  document.getElementById('ideaCard').style.display='';
   ['views','subs','vidCount','mult','date'].forEach(k=>{
     const el=document.getElementById('a-'+k);
     if(el)el.textContent=sortKey===k?(sortDir===-1?'▼':'▲'):'';
@@ -709,10 +872,12 @@ async function mineKeywords(){
     if(!seen.size)throw new Error('연관 검색어를 찾지 못했습니다. 다른 시드로 시도해 보세요.');
     selKw.clear();
     const cloud=[...seen.entries()];
-    document.getElementById('kwResult').innerHTML=cloud.map(([k,lv])=>
-      `<span class="kw" onclick="toggleKw(this,'${k.replace(/'/g,"\\'")}')">${esc(k)}${lv===2?'<span class="lv2">↳</span>':''}</span>`).join('');
+    document.getElementById('kwResult').innerHTML=
+      `<div class="kwgroup"><div class="kwseed">${esc(seed)}<span class="rank1">인기순</span></div><div class="kwcloud">`+
+      cloud.map(([k,lv],i)=>kwChip(k,lv===1?i:9)).join('')+`</div></div>`;
     document.getElementById('kwEmpty').style.display='none';
     document.getElementById('kwActions').style.display='flex';
+    document.getElementById('demandChart').classList.remove('show');
     updSel();
   }catch(e){showErr('자동완성 채굴 실패: '+e.message+' (사내망 등 일부 네트워크에서 차단될 수 있습니다)');}
   finally{btn.disabled=false;btn.textContent='자동완성 채굴';}
@@ -738,6 +903,148 @@ function mineToSearch(){
   document.getElementById('kw').value=k;
   switchTab('search');
   runSearch();
+}
+
+const MAP_SEEDS=['월급','노후 준비','연금','대출','절세','미국주식','아파트','비트코인'];
+function kwChip(k,i){
+  const size=Math.max(12,17-i); // 인기순 크기: 1위 17px → 12px
+  const wt=i<3?600:500;
+  return `<span class="kw" style="font-size:${size}px;font-weight:${wt}" onclick="toggleKw(this,'${k.replace(/'/g,"\\'")}')">${esc(k)}</span>`;
+}
+async function mineMap(){
+  hideErr();
+  const btn=document.getElementById('mapBtn');
+  btn.disabled=true;btn.textContent='채굴 중...';
+  try{
+    const results=await Promise.allSettled(MAP_SEEDS.map(s=>suggest(s)));
+    let html='';selKw.clear();
+    results.forEach((r,idx)=>{
+      if(r.status!=='fulfilled'||!r.value.length)return;
+      const chips=r.value.filter(k=>k!==MAP_SEEDS[idx]).slice(0,10);
+      html+=`<div class="kwgroup"><div class="kwseed">${MAP_SEEDS[idx]}<span class="rank1">인기순</span></div><div class="kwcloud">${chips.map((k,i)=>kwChip(k,i)).join('')}</div></div>`;
+    });
+    if(!html)throw new Error('연관 검색어를 불러오지 못했습니다. 네트워크를 확인해 주세요.');
+    document.getElementById('kwResult').innerHTML=html;
+    document.getElementById('kwEmpty').style.display='none';
+    document.getElementById('kwActions').style.display='flex';
+    document.getElementById('demandChart').classList.remove('show');
+    updSel();
+  }catch(e){showErr('키워드 맵 실패: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='🗺 투자 키워드 맵 한번에';}
+}
+async function verifyDemand(){
+  hideErr();
+  if(!API_KEY){showErr('검색량 검증에는 API 키가 필요합니다. (Step 1)');return;}
+  const kws=[...selKw];
+  if(!kws.length){alert('검증할 키워드를 1~5개 선택해 주세요.');return;}
+  const btn=document.getElementById('demandBtn');
+  btn.disabled=true;btn.textContent='검증 중...';
+  try{
+    const scores=[];
+    for(let i=0;i<kws.length;i++){
+      setStatus(`「${kws[i]}」 최근 30일 상위 영상 조회수 합산 중... (${i+1}/${kws.length})`,((i+1)/kws.length)*90);
+      const publishedAfter=new Date(Date.now()-30*86400000).toISOString();
+      const su=new URL('https://www.googleapis.com/youtube/v3/search');
+      su.search=new URLSearchParams({key:API_KEY,part:'id',type:'video',maxResults:'10',q:kws[i],order:'viewCount',regionCode:'KR',relevanceLanguage:'ko',publishedAfter});
+      const sr=await fetch(su);const sj=await sr.json();
+      if(sj.error)throw new Error(apiErrMsg(sj.error));
+      updQuota(100);
+      const ids=sj.items.map(it=>it.id.videoId).filter(Boolean);
+      let sum=0;
+      if(ids.length){
+        const vu=new URL('https://www.googleapis.com/youtube/v3/videos');
+        vu.search=new URLSearchParams({key:API_KEY,part:'statistics',id:ids.join(',')});
+        const vr=await fetch(vu);const vj=await vr.json();
+        if(vj.error)throw new Error(apiErrMsg(vj.error));
+        updQuota(1);
+        sum=vj.items.reduce((s,v)=>s+(Number(v.statistics.viewCount)||0),0);
+      }
+      scores.push({k:kws[i],v:sum});
+    }
+    setStatus(null);
+    scores.sort((a,b)=>b.v-a.v);
+    const max=Math.max(...scores.map(s=>s.v),1);
+    const el=document.getElementById('demandChart');
+    el.innerHTML=`<h4>키워드 수요 점수</h4><p class="dnote">최근 30일 게시된 상위 10개 영상의 조회수 합계 — 막대가 길수록 지금 트래픽이 몰리는 키워드입니다.</p>`+
+      scores.map(s=>`<div class="drow"><span class="dk">${esc(s.k)}</span><div class="dtrack"><div class="dfill" style="width:${Math.max(8,(s.v/max)*100)}%">${fmt(s.v)}</div></div></div>`).join('');
+    el.classList.add('show');
+  }catch(e){setStatus(null);showErr(e.message);}
+  finally{btn.disabled=false;btn.textContent='📊 검색량 검증 (회당 101유닛)';}
+}
+
+/* ───────── STEP4: AI 콘텐츠 제안 ───────── */
+function saveGmKey(){
+  const k=document.getElementById('gmKey').value.trim();
+  if(!k){showErr('Gemini API 키를 입력해 주세요.');return;}
+  store('gm_api_key',k);hideErr();
+  alert('Gemini 키가 저장되었습니다.');
+}
+function buildIdeaPrompt(){
+  const top=[...viewList].sort((a,b)=>b.mult-a.mult).slice(0,20);
+  const data=top.map(v=>`- "${v.title}" | 조회수 ${v.views.toLocaleString()} | 구독자 ${v.subs.toLocaleString()} | 성과배수 ×${v.mult.toFixed(1)} | 채널총영상 ${v.vidCount}개`).join('\n');
+  return `당신은 직장인 대상 재테크·투자 콘텐츠 전략가입니다.
+아래는 유튜브에서 "구독자 대비 조회수가 폭발한" 아웃라이어 영상 목록입니다. 채널의 힘이 아니라 제목·소재 자체의 힘으로 터진 영상들입니다.
+
+${data}
+
+이 패턴을 분석해서, 재테크 크리에이터가 새로 만들면 좋을 콘텐츠 5개를 제안해 주세요.
+반드시 아래 JSON 배열 형식으로만 답하세요. 마크다운 코드블록·설명 없이 JSON만 출력하세요.
+
+[{"title":"실제 쓸 수 있는 후킹 제목 (숫자·구체성 포함)","hook":"영상/게시물 첫 문장 (스크롤 멈추게 하는 한 줄)","outline":["구성 포인트1","포인트2","포인트3"],"format":"릴스|쇼츠|롱폼|카드뉴스 중 하나","ref":"참고한 원본 영상 제목 (축약 가능)"}]
+
+규칙: 제목에 구체적 숫자 포함, 위 목록에서 터진 소재·문법을 변형(복제 금지), 직장인 눈높이 언어 사용.`;
+}
+function copyIdeaPrompt(){
+  if(!viewList.length){alert('먼저 영상을 검색·수집해 주세요.');return;}
+  navigator.clipboard.writeText(buildIdeaPrompt())
+    .then(()=>alert('프롬프트가 복사되었습니다. Claude나 ChatGPT에 붙여넣으세요!'));
+}
+async function generateIdeas(){
+  hideErr();
+  if(!viewList.length){alert('먼저 영상을 검색·수집해 주세요.');return;}
+  const gmKey=document.getElementById('gmKey').value.trim()||load('gm_api_key');
+  if(!gmKey){showErr('Gemini API 키를 저장하거나, 「프롬프트만 복사」로 Claude·GPT를 이용하세요. 키 무료 발급: aistudio.google.com → Get API key');return;}
+  if(document.getElementById('gmKey').value.trim())store('gm_api_key',gmKey);
+  const btn=document.getElementById('ideaBtn');
+  btn.disabled=true;btn.textContent='생성 중...';
+  try{
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${gmKey}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:buildIdeaPrompt()}]}]})
+    });
+    const j=await r.json();
+    if(j.error)throw new Error('Gemini 오류: '+(j.error.message||j.error.status));
+    let txt=j.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+    txt=txt.replace(/```json|```/g,'').trim();
+    const start=txt.indexOf('['),end=txt.lastIndexOf(']');
+    if(start<0||end<0)throw new Error('응답 형식을 해석하지 못했습니다. 다시 시도해 주세요.');
+    const ideas=JSON.parse(txt.slice(start,end+1));
+    renderIdeas(ideas);
+  }catch(e){showErr(e.message);}
+  finally{btn.disabled=false;btn.textContent='✍ 제안 5개 생성';}
+}
+let lastIdeas=[];
+function copyIdea(i){
+  const d=lastIdeas[i];if(!d)return;
+  const t=`제목: ${d.title}\n훅: ${d.hook}\n구성:\n${(d.outline||[]).map(o=>'- '+o).join('\n')}\n형식: ${d.format||''}`;
+  navigator.clipboard.writeText(t).then(()=>alert('복사되었습니다'));
+}
+function renderIdeas(ideas){
+  lastIdeas=ideas.slice(0,5);
+  document.getElementById('ideaGrid').innerHTML=lastIdeas.map((d,i)=>{
+    const outline=(d.outline||[]).map(o=>`<li>${esc(o)}</li>`).join('');
+    return `<div class="idea">
+      <span class="no">IDEA 0${i+1}</span>
+      <h3>${esc(d.title||'')}</h3>
+      <p class="hook">"${esc(d.hook||'')}"</p>
+      <ul>${outline}</ul>
+      <div class="meta">
+        <span class="fmt">${esc(d.format||'릴스')}</span>
+        <span class="ref">참고: ${esc(d.ref||'-')}</span>
+        <button class="cp" onclick="copyIdea(${i})">복사</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 /* ───────── export ───────── */
