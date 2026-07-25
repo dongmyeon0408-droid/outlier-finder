@@ -264,7 +264,7 @@ body{transition:background .25s,color .25s}
 
 <!-- NAV -->
 <nav class="nav">
-  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v1.1</span></span>
+  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v1.2</span></span>
   <div class="tabs">
     <button class="tab on" id="tabSearch" onclick="switchTab('search')">영상 발굴</button>
     <button class="tab" id="tabHot" onclick="switchTab('hot')">급상승 차트</button>
@@ -333,6 +333,7 @@ body{transition:background .25s,color .25s}
   <div class="row">
     <select id="hotCat">
       <option value="consume" selected>✦ 소비형 콘텐츠만 (뉴스·인물·교육·노하우·과기)</option>
+      <option value="consume2">✦✦ 소비형 확장 (＋여행·자동차·동물·코미디)</option>
       <option value="">전체 카테고리</option>
       <option value="25">뉴스·정치</option>
       <option value="22">인물·블로그</option>
@@ -362,11 +363,11 @@ body{transition:background .25s,color .25s}
   <div class="row">
     <input id="seedKw" class="grow" placeholder="시드 키워드 (예: 미국주식, 금리, 아파트)" onkeydown="if(event.key==='Enter')mineKeywords()">
     <button class="btn btn-ink" id="mineBtn" onclick="mineKeywords()">자동완성 채굴</button>
-    <button class="gem" id="mapBtn" onclick="mineMap()">🗺 투자 키워드 맵 한번에</button>
+    <button class="gem" id="mapBtn" onclick="mineMap()">🎲 랜덤 키워드 맵 (8개 축)</button>
   </div>
   <div class="chips" id="seedPresets"></div>
   <div id="kwResult"></div>
-  <p class="tr-empty" id="kwEmpty">「🗺 투자 키워드 맵」을 누르면 월급·연금·대출·절세·미국주식·아파트·비트코인·노후 8개 축의 연관 검색어가 인기순으로 한눈에 펼쳐집니다. 칩을 눌러 최대 5개까지 선택하세요.</p>
+  <p class="tr-empty" id="kwEmpty">「🎲 랜덤 키워드 맵」은 70여 개 투자·머니 시드 풀에서 매번 다른 8개 축을 뽑아 연관 검색어를 펼칩니다 — 누를 때마다 새로운 조합이 나옵니다. 칩을 눌러 최대 5개까지 선택하세요.</p>
   <div class="trend-actions" id="kwActions" style="display:none">
     <span class="sel-note">선택 <b id="selCnt">0</b>/5</span>
     <button class="btn btn-ink" onclick="verifyDemand()" id="demandBtn">📊 검색량 검증 (회당 101유닛)</button>
@@ -382,7 +383,7 @@ body{transition:background .25s,color .25s}
 <!-- ═══ TAB 4: GUIDE ═══ -->
 <div class="panel" id="panelGuide">
 <section class="card">
-  <div class="eyebrow">사용 가이드 · v1.1 (2026.07)</div>
+  <div class="eyebrow">사용 가이드 · v1.2 (2026.07)</div>
 
   <div class="gsec">
     <h3>이 앱이 찾는 것 — 아웃라이어</h3>
@@ -528,6 +529,15 @@ body{transition:background .25s,color .25s}
   <div class="stat"><span class="k">Great</span><span class="v em" id="sGreat">0</span></div>
 </div>
 
+<!-- 제목 역추출 -->
+<section class="card" id="hotWordsCard" style="display:none;margin-top:24px">
+  <div class="eyebrow">지금 제목에서 뜨는 단어 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--slate)">— 수집된 영상 제목을 분석해 자주 등장하는 단어를 역추출합니다. 클릭하면 그 단어로 새 검색</span></div>
+  <div class="chips" id="hotWordChips" style="margin-top:6px"></div>
+  <div class="row" style="margin-top:14px">
+    <button class="gem" id="expandBtn" onclick="expandSearch()">🔍 확장 검색 — 뜨는 단어 2개로 결과에 추가 수집 (약 202유닛)</button>
+  </div>
+</section>
+
 <!-- TABLE -->
 <section class="tbl-card" id="tblCard">
   <div class="tbl-head">
@@ -604,12 +614,23 @@ function store(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}
 function load(k){try{return localStorage.getItem(k)??mem[k]??''}catch(e){return mem[k]??''}}
 
 /* ───────── init ───────── */
-const PRESET_KW=['월급','퇴사','노후 준비','국민연금','연금저축','ISA','전세사기','대출 금리','연말정산','절세','부업','무지출','미국주식','배당주','비트코인','아파트 청약'];
-window.addEventListener('DOMContentLoaded',()=>{
+/* 시드 풀 70+개 — 매번 랜덤 회전 */
+const SEED_POOL=['월급','월급 200','월급 300','연봉','퇴사','이직','부업','투잡','절약','무지출','짠테크','거지방','가계부','비상금','청약','아파트 청약','전세','전세사기','월세','내집마련','부동산','재건축','경매','대출','주담대','금리','환율','물가','인플레이션','경기침체','국민연금','연금저축','IRP','ISA','퇴직금','노후 준비','파이어족','조기은퇴','재테크','예금 금리','적금 추천','CMA','미국주식','국장','삼성전자','엔비디아','테슬라','반도체','ETF','배당주','배당금','공모주','비트코인','이더리움','금 투자','달러 투자','채권','연말정산','절세','증여','상속','건강보험료','종합소득세','창업','스마트스토어','유튜버 수익','중고차','보험 리모델링','신용점수','청년도약계좌','주식 초보'];
+function sample(arr,n){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a.slice(0,n);
+}
+function renderPresetChips(){
   document.getElementById('presets').innerHTML =
-    PRESET_KW.map(k=>`<span class="chip" onclick="document.getElementById('kw').value='${k}';runSearch()">${k}</span>`).join('');
+    `<span class="chip" style="border-color:var(--arc);color:var(--signal)" onclick="renderPresetChips()">🎲 셔플</span>`+
+    sample(SEED_POOL,14).map(k=>`<span class="chip" onclick="document.getElementById('kw').value='${k}';runSearch()">${k}</span>`).join('');
   document.getElementById('seedPresets').innerHTML =
-    PRESET_KW.map(k=>`<span class="chip" onclick="document.getElementById('seedKw').value='${k}';mineKeywords()">${k}</span>`).join('');
+    `<span class="chip" style="border-color:var(--arc);color:var(--signal)" onclick="renderPresetChips()">🎲 셔플</span>`+
+    sample(SEED_POOL,14).map(k=>`<span class="chip" onclick="document.getElementById('seedKw').value='${k}';mineKeywords()">${k}</span>`).join('');
+}
+window.addEventListener('DOMContentLoaded',()=>{
+  renderPresetChips();
   API_KEY=load('yt_api_key');
   if(API_KEY){document.getElementById('apiKey').value=API_KEY;keyOk();document.getElementById('keyCard').classList.add('closed');}
   if(load('theme')==='dark')setTheme('dark');
@@ -635,6 +656,7 @@ function switchTab(t){
   document.getElementById('filterCard').style.display=vidOnly;
   document.getElementById('summary').style.display=vidOnly;
   document.getElementById('tblCard').style.display=vidOnly;
+  document.getElementById('hotWordsCard').style.display=(vidOnly==='none'||!allVideos.length)?'none':'';
   document.getElementById('ideaCard').style.display=(vidOnly==='none'||!allVideos.length)?'none':'';
   if(t==='search'||t==='hot'){
     currentMode=t;
@@ -647,6 +669,7 @@ function switchTab(t){
       allVideos=[];viewList=[];
       document.getElementById('tblCard').classList.remove('show');
       document.getElementById('summary').classList.remove('show');
+      document.getElementById('hotWordsCard').style.display='none';
       document.getElementById('ideaCard').style.display='none';
     }
   }
@@ -804,12 +827,12 @@ async function runHot(){
     const cat=document.getElementById('hotCat').value;
     const maxPages=Number(document.getElementById('hotPages').value);
     // 소비형 모드: 뉴스·인물·교육·노하우·과기 5개 카테고리 차트를 각각 불러와 병합
-    const cats = cat==='consume' ? ['25','22','27','26','28'] : [cat];
+    const cats = cat==='consume' ? ['25','22','27','26','28'] : cat==='consume2' ? ['25','22','27','26','28','19','2','15','23'] : [cat];
     let videos=[]; const seenIds=new Set();
-    let step=0, total=cats.length*(cat==='consume'?Math.min(maxPages,2):maxPages);
+    let step=0, total=cats.length*maxPages;
     for(const c of cats){
       let pageToken='';
-      const pagesForCat = cat==='consume'?Math.min(maxPages,2):maxPages;
+      const pagesForCat = maxPages;
       for(let p=0;p<pagesForCat;p++){
         step++;
         setStatus(`인기 급상승 차트 불러오는 중... (${step}/${total})`,(step/total)*60);
@@ -906,6 +929,7 @@ function render(){
   document.getElementById('tblCard').classList.add('show');
   document.getElementById('summary').classList.add('show');
   document.getElementById('ideaCard').style.display='';
+  renderHotWords();
   ['views','subs','vidCount','mult','date'].forEach(k=>{
     const el=document.getElementById('a-'+k);
     if(el)el.textContent=sortKey===k?(sortDir===-1?'▼':'▲'):'';
@@ -962,28 +986,27 @@ async function suggest(q){
   const d=await jsonp(u);
   return (d?.[1]||[]).map(it=>Array.isArray(it)?it[0]:it).filter(Boolean);
 }
+const KW_MODS=['',' 왜',' 방법',' 추천',' 후기',' 순위',' 현실',' 하는법'];
 async function mineKeywords(){
   const seed=document.getElementById('seedKw').value.trim();
   if(!seed){showErr('시드 키워드를 입력해 주세요.');return;}
   hideErr();
   const btn=document.getElementById('mineBtn');
-  btn.disabled=true;btn.textContent='채굴 중...';
+  btn.disabled=true;btn.textContent='딥 채굴 중...';
   try{
-    const seen=new Map(); // kw -> level
-    const lv1=await suggest(seed);
-    lv1.forEach(k=>{if(k!==seed)seen.set(k,1)});
-    // 2차 확장: 1차 상위 8개를 다시 채굴
-    const targets=lv1.slice(0,8);
-    const results=await Promise.allSettled(targets.map(t=>suggest(t)));
-    results.forEach(r=>{
-      if(r.status==='fulfilled')r.value.forEach(k=>{if(!seen.has(k)&&k!==seed)seen.set(k,2)});
+    // 딥 채굴: 시드 + 8개 변형어(왜/방법/추천/후기...)로 동시 확장
+    const results=await Promise.allSettled(KW_MODS.map(m=>suggest(seed+m)));
+    const seen=new Map();
+    results.forEach((r,mi)=>{
+      if(r.status!=='fulfilled')return;
+      r.value.forEach((k,i)=>{if(k!==seed&&!seen.has(k))seen.set(k,mi===0?i:i+3);});
     });
     if(!seen.size)throw new Error('연관 검색어를 찾지 못했습니다. 다른 시드로 시도해 보세요.');
     selKw.clear();
-    const cloud=[...seen.entries()];
+    const cloud=[...seen.entries()].sort((a,b)=>a[1]-b[1]);
     document.getElementById('kwResult').innerHTML=
-      `<div class="kwgroup"><div class="kwseed">${esc(seed)}<span class="rank1">인기순</span></div><div class="kwcloud">`+
-      cloud.map(([k,lv],i)=>kwChip(k,lv===1?i:9)).join('')+`</div></div>`;
+      `<div class="kwgroup"><div class="kwseed">${esc(seed)} 딥 채굴<span class="rank1">${cloud.length}개 · 인기순</span></div><div class="kwcloud">`+
+      cloud.map(([k,rank])=>kwChip(k,Math.min(rank,9))).join('')+`</div></div>`;
     document.getElementById('kwEmpty').style.display='none';
     document.getElementById('kwActions').style.display='flex';
     document.getElementById('demandChart').classList.remove('show');
@@ -1014,7 +1037,6 @@ function mineToSearch(){
   runSearch();
 }
 
-const MAP_SEEDS=['월급','노후 준비','연금','대출','절세','미국주식','아파트','비트코인'];
 function kwChip(k,i){
   const size=Math.max(12,17-i); // 인기순 크기: 1위 17px → 12px
   const wt=i<3?600:500;
@@ -1025,12 +1047,13 @@ async function mineMap(){
   const btn=document.getElementById('mapBtn');
   btn.disabled=true;btn.textContent='채굴 중...';
   try{
-    const results=await Promise.allSettled(MAP_SEEDS.map(s=>suggest(s)));
+    const seeds=sample(SEED_POOL,8); // 매번 다른 8개 축
+    const results=await Promise.allSettled(seeds.map(s=>suggest(s)));
     let html='';selKw.clear();
     results.forEach((r,idx)=>{
       if(r.status!=='fulfilled'||!r.value.length)return;
-      const chips=r.value.filter(k=>k!==MAP_SEEDS[idx]).slice(0,10);
-      html+=`<div class="kwgroup"><div class="kwseed">${MAP_SEEDS[idx]}<span class="rank1">인기순</span></div><div class="kwcloud">${chips.map((k,i)=>kwChip(k,i)).join('')}</div></div>`;
+      const chips=r.value.filter(k=>k!==seeds[idx]).slice(0,10);
+      html+=`<div class="kwgroup"><div class="kwseed">${seeds[idx]}<span class="rank1">인기순</span></div><div class="kwcloud">${chips.map((k,i)=>kwChip(k,i)).join('')}</div></div>`;
     });
     if(!html)throw new Error('연관 검색어를 불러오지 못했습니다. 네트워크를 확인해 주세요.');
     document.getElementById('kwResult').innerHTML=html;
@@ -1039,7 +1062,7 @@ async function mineMap(){
     document.getElementById('demandChart').classList.remove('show');
     updSel();
   }catch(e){showErr('키워드 맵 실패: '+e.message);}
-  finally{btn.disabled=false;btn.textContent='🗺 투자 키워드 맵 한번에';}
+  finally{btn.disabled=false;btn.textContent='🎲 랜덤 키워드 맵 (8개 축)';}
 }
 async function verifyDemand(){
   hideErr();
@@ -1195,6 +1218,84 @@ function renderIdeas(ideas){
       </div>
     </div>`;
   }).join('');
+}
+
+/* ───────── 제목 키워드 역추출 & 확장 검색 ───────── */
+const STOPW=new Set(['그리고','하지만','합니다','있습니다','있는','없는','하는','해야','하면','까지','부터','에서','대한','위한','통해','관련','오늘','지금','바로','진짜','정말','완전','최근','영상','유튜브','shorts','youtube','the','and','for','with','this','that','근데','그냥','이거','저거','무엇','어떤','어떻게','됩니다','됐다','했다','한다','라는','이라는','수','것','때','더','왜','안','못','줄','거','게','건','내','네','씨']);
+const PARTICLES='은는이가을를의에도로와과만요죠';
+let lastHotWords=[];
+function stripParticle(w){
+  while(w.length>2&&PARTICLES.includes(w[w.length-1]))w=w.slice(0,-1);
+  return w;
+}
+function extractHotWords(list){
+  const cnt={};
+  list.forEach(v=>{
+    String(v.title).replace(/\[[^\]]*\]|\([^)]*\)|#\S+/g,' ')
+      .split(/[^가-힣a-zA-Z0-9]+/).forEach(raw=>{
+        let w=stripParticle(raw.trim());
+        if(w.length<2||w.length>12)return;
+        if(/^\d+$/.test(w))return;
+        if(STOPW.has(w.toLowerCase()))return;
+        cnt[w]=(cnt[w]||0)+1;
+      });
+  });
+  return Object.entries(cnt).filter(([,c])=>c>=3).sort((a,b)=>b[1]-a[1]).slice(0,24);
+}
+function renderHotWords(){
+  const words=extractHotWords(viewList.length?viewList:allVideos);
+  lastHotWords=words.map(([w])=>w);
+  const card=document.getElementById('hotWordsCard');
+  if(!words.length){card.style.display='none';return;}
+  card.style.display='';
+  document.getElementById('hotWordChips').innerHTML=words.map(([w,c],i)=>
+    `<span class="chip" style="font-size:${Math.max(12,16-Math.floor(i/6))}px" onclick="wordToSearch('${w.replace(/'/g,"\\'")}')">${esc(w)} <b style="font-family:var(--mono);font-size:10px;color:var(--signal)">${c}</b></span>`).join('');
+}
+function wordToSearch(w){
+  document.getElementById('kw').value=w;
+  switchTab('search');
+  runSearch();
+}
+async function expandSearch(){
+  hideErr();
+  if(!API_KEY){showErr('먼저 API 키를 저장해 주세요. (Step 1)');return;}
+  if(lastHotWords.length<2){alert('먼저 영상을 수집해 뜨는 단어를 추출하세요.');return;}
+  const picks=sample(lastHotWords.slice(0,12),2);
+  const btn=document.getElementById('expandBtn');
+  btn.disabled=true;btn.textContent=`「${picks.join('」·「')}」 추가 수집 중...`;
+  try{
+    const publishedAfter=new Date(Date.now()-90*86400000).toISOString();
+    let newVideos=[];
+    for(let i=0;i<picks.length;i++){
+      setStatus(`「${picks[i]}」 확장 검색 중... (${i+1}/2)`,((i+1)/2)*70);
+      const su=new URL('https://www.googleapis.com/youtube/v3/search');
+      su.search=new URLSearchParams({key:API_KEY,part:'id',type:'video',maxResults:'50',q:picks[i],order:'viewCount',regionCode:'KR',relevanceLanguage:'ko',publishedAfter});
+      const sr=await fetch(su);const sj=await sr.json();
+      if(sj.error)throw new Error(apiErrMsg(sj.error));
+      updQuota(100);
+      const ids=sj.items.map(it=>it.id.videoId).filter(Boolean);
+      if(!ids.length)continue;
+      const vu=new URL('https://www.googleapis.com/youtube/v3/videos');
+      vu.search=new URLSearchParams({key:API_KEY,part:'snippet,statistics,contentDetails',id:ids.join(',')});
+      const vr=await fetch(vu);const vj=await vr.json();
+      if(vj.error)throw new Error(apiErrMsg(vj.error));
+      updQuota(1);
+      newVideos.push(...vj.items);
+    }
+    if(!newVideos.length)throw new Error('확장 검색 결과가 없습니다.');
+    setStatus('채널 정보 수집 중...',85);
+    const enriched=await enrichChannels(newVideos);
+    const have=new Set(allVideos.map(v=>v.id));
+    const added=enriched.filter(v=>!have.has(v.id));
+    allVideos=[...allVideos,...added];
+    if(currentMode==='search')tabData.search={videos:allVideos,kw:document.getElementById('kw').value.trim()};
+    else tabData.hot={videos:allVideos};
+    persistTab(currentMode);
+    setStatus(null);
+    applyFilters();
+    alert(`「${picks.join('」·「')}」에서 ${added.length}개 영상이 추가되었습니다.`);
+  }catch(e){setStatus(null);showErr(e.message);}
+  finally{btn.disabled=false;btn.textContent='🔍 확장 검색 — 뜨는 단어 2개로 결과에 추가 수집 (약 202유닛)';}
 }
 
 /* ───────── export ───────── */
