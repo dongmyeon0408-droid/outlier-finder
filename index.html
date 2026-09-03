@@ -385,7 +385,7 @@ body{transition:background .25s,color .25s}
 
 <!-- NAV -->
 <nav class="nav">
-  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v1.5</span></span>
+  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v1.6</span></span>
   <div class="tabs">
     <button class="tab on" id="tabDiscover" onclick="switchTab('discover')">어제의 발견</button>
     <button class="tab" id="tabSearch" onclick="switchTab('search')">영상 발굴</button>
@@ -440,6 +440,7 @@ body{transition:background .25s,color .25s}
     <div class="fg"><label>1차 후보 · 조회수 ≥</label><input type="number" id="setPreViews" value="5000"></div>
     <div class="fg"><label>baseline 최소 표본</label><input type="number" id="setBaseMin" value="8"></div>
     <div class="fg"><label>데이터 보관 (일)</label><input type="number" id="setRetain" value="30"></div>
+    <div class="fg"><label>상세 보강 상한 (제목·썸네일)</label><input type="number" id="setHydrate" value="300"></div>
   </div>
   <div class="row" style="margin-top:20px">
     <button class="btn btn-ink" onclick="saveSettings()">설정 저장</button>
@@ -487,6 +488,7 @@ body{transition:background .25s,color .25s}
     </select>
     <button class="btn btn-out" id="krOnlyBtn" onclick="toggleKrOnly()">🇰🇷 한국어 제목 우선</button>
   </div>
+  <p class="subnote" id="periodHint" style="margin-top:10px"></p>
   <p class="hint">키워드(q) 없이 <span class="gk">search.list</span>를 <b>카테고리 × 정렬(조회수순·최신순)</b> 조합으로 호출해 전날 업로드분을 통째로 긁어옵니다. 그 뒤 소형 채널만 남기고, 각 채널의 과거 영상과 비교해 <b>평소보다 몇 배 터졌는지</b>를 계산합니다. 발견한 채널은 채널 레이더에 자동 등록됩니다.</p>
   <p class="subnote">「한국어 제목 우선」은 YouTube 공식 언어 판정이 아니라 <b>제목의 한글 비율로 앱이 추정</b>하는 보조 필터입니다.</p>
 </section>
@@ -522,6 +524,42 @@ body{transition:background .25s,color .25s}
   <p class="hint">키워드가 이미 정해졌을 때 레퍼런스를 모으는 탭입니다. 수집 후 <b>채널 baseline까지 계산</b>하려면 아래 「채널배수 계산」 버튼을 누르세요 (후보 채널당 1유닛).</p>
   <div class="row" style="margin-top:14px">
     <button class="gem" id="calcBaseBtn" onclick="enrichBaseline()">📐 이 결과에 채널배수 계산</button>
+  </div>
+</section>
+
+<section class="card">
+  <div class="eyebrow">Step 2-B · 유니버스 채굴 (채널 대량 수집)</div>
+  <p style="color:var(--slate);margin-bottom:16px;max-width:720px">키워드를 <b style="color:var(--ink)">자동으로 순회</b>하며 <b style="color:var(--ink)">채널만</b> 수집합니다. 영상 상세·baseline을 계산하지 않으므로 일반 쿼터를 거의 쓰지 않고, <span class="gk">search.list</span>의 <span class="gk">part=snippet</span>에서 channelId를 바로 받아 <b style="color:var(--ink)">videos.list 단계를 통째로 건너뜁니다</b>. 하나씩 검색하는 것보다 훨씬 쌉니다.</p>
+  <div class="row">
+    <select id="mineSrc">
+      <option value="seed" selected>랜덤 시드 (투자·머니 70종)</option>
+      <option value="hot">현재 결과의 뜨는 단어</option>
+      <option value="custom">직접 입력 (쉼표 구분)</option>
+    </select>
+    <select id="mineCount">
+      <option value="10">키워드 10개</option>
+      <option value="20" selected>키워드 20개</option>
+      <option value="40">키워드 40개</option>
+    </select>
+    <select id="minePages">
+      <option value="1" selected>키워드당 50개</option>
+      <option value="2">키워드당 100개 (쿼터 2배)</option>
+    </select>
+    <select id="minePeriod">
+      <option value="30">최근 30일</option>
+      <option value="90" selected>최근 90일</option>
+      <option value="365">최근 1년</option>
+      <option value="0">전체 기간</option>
+    </select>
+    <button class="btn btn-ink" id="mineUniBtn" onclick="mineUniverse()">⛏ 채굴 시작</button>
+  </div>
+  <input id="mineCustom" placeholder="직접 입력 예: 배당주, 재건축, 퇴직연금, ISA 계좌" style="margin-top:10px;width:100%;display:none">
+  <div class="unibar" style="margin-top:18px">
+    <div class="unistat"><span class="k">현재 유니버스</span><span class="v em" id="mineNow">0</span></div>
+    <div class="unistat"><span class="k">예상 검색 쿼터</span><span class="v" id="mineCost">20</span></div>
+    <div class="unistat"><span class="k">남은 검색</span><span class="v" id="mineLeft">100</span></div>
+    <span style="flex:1"></span>
+    <span class="subnote" id="mineResult" style="margin:0"></span>
   </div>
 </section>
 </div>
@@ -637,7 +675,7 @@ body{transition:background .25s,color .25s}
 <!-- ═══ TAB 6: GUIDE ═══ -->
 <div class="panel" id="panelGuide">
 <section class="card">
-  <div class="eyebrow">사용 가이드 · v1.5 (2026.09)</div>
+  <div class="eyebrow">사용 가이드 · v1.6 (2026.09)</div>
   <div id="guideBody"></div>
 </section>
 </div>
@@ -789,7 +827,7 @@ body{transition:background .25s,color .25s}
 </section>
 
 <footer>
-  <b>겨울잠 아웃라이어 파인더 v1.5</b>
+  <b>겨울잠 아웃라이어 파인더 v1.6</b>
   <span>YouTube Data API v3 · 모든 데이터는 당신의 브라우저 안에서만 처리됩니다 · 채널배수는 누적 조회수 기반 상대 성과, VPH는 초기 성장 속도 — 서로 다른 것을 재는 지표입니다</span>
 </footer>
 </div>
@@ -826,7 +864,7 @@ function load(k){try{return localStorage.getItem(k)??mem[k]??''}catch(e){return 
 const DEF_SET={
   limSearch:100, limCore:10000, limStats:10000,
   gemHours:48, gemSubs:50000, gemViews:10000, gemVps:3, gemOut:5,
-  preSubs:100000, preViews:5000, baseMin:8, retain:30
+  preSubs:100000, preViews:5000, baseMin:8, retain:30, hydrate:300
 };
 let SET={...DEF_SET};
 function loadSettings(){
@@ -920,9 +958,14 @@ function discoverWindow(mode){
   return{after:a.toISOString(),before:now.toISOString(),label:`최근 ${mode==='48h'?'48시간':'7일'} (~ 지금)`};
 }
 function updDiscRange(){
-  const w=discoverWindow(document.getElementById('discWhen').value);
+  const mode=document.getElementById('discWhen').value;
+  const w=discoverWindow(mode);
   const rg=document.getElementById('discRegion').value;
   document.getElementById('discRange').innerHTML=`수집 구간 <b>${w.label}</b> · 지역 ${rg}`;
+  const h=document.getElementById('periodHint');
+  if(h)h.innerHTML=(mode==='7d'||mode==='48h')
+    ? '📡 <b>유니버스 경로에 적합한 기간</b>입니다. 검색 경로(🔥)에서는 조회수순 상위를 오래된 영상이 차지해 "어제 터진" 영상이 묻힐 수 있습니다.'
+    : '🔥 <b>검색 경로에 적합한 기간</b>입니다. 유니버스 경로(📡)로 표본을 늘리려면 「최근 7일」이 낫습니다.';
 }
 
 /* ───────── IndexedDB ─────────
@@ -1129,6 +1172,7 @@ function loadUniverse(){
   return UNI;
 }
 function saveUniverse(){
+  try{updMineCost();}catch(e){}
   try{
     const keys=Object.keys(UNI);
     if(keys.length>UNI_CAP){
@@ -1563,7 +1607,7 @@ async function runDiscoverUniverse(){
       (d,t)=>setStatus(`유니버스 스캔 중... (${d}/${t} 채널) · 구간 ${win.label}`,(d/t)*72));
     if(!rows.length)throw new Error(`${targets.length}개 채널 중 해당 구간(${win.label})에 올라온 영상이 없습니다. 기간을 「최근 7일」로 넓혀 보세요.`);
     setStatus('상위 후보 제목·썸네일 수집 중...',76);
-    const final=await hydrateTop(rows,300,76);
+    const final=await hydrateTop(rows,SET.hydrate,76);
     if(!final.length)throw new Error('상세 정보를 가져오지 못했습니다.');
     allVideos=final;
     buildClusters(allVideos);
@@ -1764,6 +1808,97 @@ async function enrichBaseline(){
   finally{btn.disabled=false;btn.textContent='📐 이 결과에 채널배수 계산';}
 }
 
+/* ───────── 유니버스 채굴 ─────────
+   목적이 '채널 수집'일 때 영상 상세·baseline은 불필요하다.
+   search.list를 part=snippet으로 부르면 channelId가 바로 들어오므로
+   videos.list 단계를 건너뛰고 channels.list로만 등록한다 → 일반 쿼터 대폭 절감. */
+let lastHotWords=[];
+function mineKeywordList(){
+  const src=document.getElementById('mineSrc').value;
+  const n=Number(document.getElementById('mineCount').value);
+  if(src==='custom'){
+    return document.getElementById('mineCustom').value.split(',').map(x=>x.trim()).filter(Boolean).slice(0,40);
+  }
+  if(src==='hot'){
+    if(lastHotWords.length<3)return [];
+    return sample(lastHotWords,Math.min(n,lastHotWords.length));
+  }
+  return sample(SEED_POOL,n);
+}
+function updMineCost(){
+  const n=Number(document.getElementById('mineCount')?.value||20);
+  const p=Number(document.getElementById('minePages')?.value||1);
+  const src=document.getElementById('mineSrc')?.value;
+  document.getElementById('mineCustom').style.display=src==='custom'?'':'none';
+  const el=document.getElementById('mineCost');
+  if(el)el.textContent=(n*p).toLocaleString();
+  const l=document.getElementById('mineLeft');
+  if(l)l.textContent=Math.max(0,quotaLeft('search')).toLocaleString();
+  const now=document.getElementById('mineNow');
+  if(now)now.textContent=Object.keys(UNI).length.toLocaleString();
+}
+async function mineUniverse(){
+  hideErr();
+  if(!API_KEY){showErr('먼저 API 키를 저장해 주세요. (Step 1)');return;}
+  loadUniverse();
+  let kws=mineKeywordList();
+  if(!kws.length){
+    showErr(document.getElementById('mineSrc').value==='hot'
+      ? '「뜨는 단어」를 쓰려면 먼저 영상을 수집해야 합니다. 랜덤 시드로 시작하세요.'
+      : '키워드를 입력해 주세요.');
+    return;
+  }
+  const pages=Number(document.getElementById('minePages').value);
+  const left=quotaLeft('search');
+  if(left<pages){showErr(`검색 쿼터가 남지 않았습니다 (남은 ${left}회). 내일 다시 시도하거나 ⚙설정에서 한도를 조정하세요.`);return;}
+  const maxKw=Math.floor(left/pages);
+  let trimmed=false;
+  if(kws.length>maxKw){kws=kws.slice(0,maxKw);trimmed=true;}
+
+  const btn=document.getElementById('mineUniBtn');
+  btn.disabled=true;btn.textContent='채굴 중...';
+  const before=Object.keys(UNI).length;
+  const days=Number(document.getElementById('minePeriod').value);
+  const publishedAfter=days?new Date(Date.now()-days*86400000).toISOString():null;
+  const chIds=new Set();
+  DIAG=[];
+  try{
+    for(let i=0;i<kws.length;i++){
+      let token='';
+      for(let p=0;p<pages;p++){
+        setStatus(`「${kws[i]}」 채굴 중... (${i+1}/${kws.length}) · 채널 후보 ${chIds.size}개`,(i/kws.length)*72);
+        try{
+          const j=await searchCall({
+            part:'snippet',type:'video',maxResults:'50',q:kws[i],order:'viewCount',
+            regionCode:'KR',relevanceLanguage:'ko',
+            ...(publishedAfter?{publishedAfter}:{}),...(token?{pageToken:token}:{})
+          });
+          (j.items||[]).forEach(it=>{if(it.snippet?.channelId)chIds.add(it.snippet.channelId);});
+          token=j.nextPageToken;
+          if(p===0)diagAdd(`「${kws[i]}」`,(j.items||[]).length,null);
+          if(!token)break;
+        }catch(e){
+          diagAdd(`「${kws[i]}」`,0,e);
+          if(isQuotaErr(e))throw e;
+          break;
+        }
+      }
+    }
+    const fresh=[...chIds].filter(id=>!UNI[id]);
+    setStatus(`새 채널 ${fresh.length}개 정보 수집 중...`,76);
+    if(fresh.length){
+      await fetchChannelMap(fresh,(d,t)=>setStatus(`채널 정보 수집 중... (${d}/${t})`,76+(d/t)*22));
+    }
+    saveUniverse();
+    const after=Object.keys(UNI).length;
+    setStatus(null);renderDiag();updMineCost();
+    document.getElementById('mineResult').innerHTML=
+      `검색 ${kws.length*pages}회 · 채널 후보 ${chIds.size}개 · <b style="color:var(--signal)">순증 ${after-before}개</b> (${before.toLocaleString()} → ${after.toLocaleString()})`;
+    toast(`채널 ${after-before}개를 새로 등록했습니다.${trimmed?' (쿼터에 맞춰 키워드를 줄였습니다)':''}`);
+  }catch(e){setStatus(null);renderDiag();showErr(e.message);}
+  finally{btn.disabled=false;btn.textContent='⛏ 채굴 시작';updMineCost();}
+}
+
 /* ───────── 채널 레이더 스캔 ───────── */
 async function runScan(){
   hideErr();
@@ -1785,7 +1920,7 @@ async function runScan(){
     if(!rows.length)throw new Error('조건에 맞는 영상이 없습니다. 기간을 넓히거나 채널 수를 늘려 보세요.');
     /* baseline은 제목·썸네일을 갖고 있지 않으므로 상위 후보만 상세 보강 */
     setStatus('상위 후보 제목·썸네일 수집 중...',78);
-    const final=await hydrateTop(rows,300,78);
+    const final=await hydrateTop(rows,SET.hydrate,78);
     if(!final.length)throw new Error('상세 정보를 가져오지 못했습니다.');
     allVideos=final;
     buildClusters(allVideos);
@@ -2154,6 +2289,7 @@ function renderHotWords(){
     titleTokens(v.title).forEach(w=>{if(w!=='num')cnt[w]=(cnt[w]||0)+1;});
   });
   const words=Object.entries(cnt).filter(([,c])=>c>=3).sort((a,b)=>b[1]-a[1]).slice(0,24);
+  lastHotWords=words.map(([w])=>w);
   if(!words.length){card.style.display='none';return;}
   card.style.display='';
   document.getElementById('hotWordChips').innerHTML=words.map(([w,c],i)=>
@@ -2661,6 +2797,8 @@ window.addEventListener('DOMContentLoaded',async()=>{
   const gm=load('gm_api_key');
   if(gm)document.getElementById('gmKey').value=gm;
   ['scSub','scRecent','scMax'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderUniverse));
+  ['mineSrc','mineCount','minePages'].forEach(id=>document.getElementById(id)?.addEventListener('change',updMineCost));
+  updMineCost();
   updDiscRange();
   restoreTabs();
   await loadBoard();
