@@ -257,6 +257,26 @@ body{transition:background .25s,color .25s}
   .tbl-head{padding:18px 20px}
   input[type=number]{width:96px}
 }
+
+/* ── 채널 스캔 (v1.3) ── */
+.tabdot{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--slate);vertical-align:1px}
+.tab.on .tabdot{background:rgba(255,255,255,.18);border-color:transparent;color:inherit}
+.unibar{display:flex;align-items:center;gap:26px;flex-wrap:wrap;padding:16px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.unistat{display:flex;flex-direction:column;gap:3px}
+.unistat .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate)}
+.unistat .v{font-size:20px;font-weight:600;letter-spacing:-.5px}
+.unistat .v.em{color:var(--signal)}
+.unilist{margin-top:16px;max-height:340px;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.unirow{display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:9px;font-size:13px}
+.unirow:hover{background:var(--surface)}
+.unirow .nm{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.unirow .sb{color:var(--slate);font-variant-numeric:tabular-nums}
+.unirow .del{border:none;background:transparent;color:var(--slate);cursor:pointer;font-size:15px;padding:0 4px}
+.unirow .del:hover{color:var(--bad)}
+.uni-empty{color:var(--slate);font-size:13px;padding:14px 2px}
+.scancol{display:none}
+.tbl-card.scanmode .scancol{display:table-cell}
+.vel{font-size:11px;color:var(--slate);font-weight:400;margin-top:2px}
 </style>
 </head>
 <body>
@@ -264,10 +284,11 @@ body{transition:background .25s,color .25s}
 
 <!-- NAV -->
 <nav class="nav">
-  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v1.2</span></span>
+  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v1.3</span></span>
   <div class="tabs">
     <button class="tab on" id="tabSearch" onclick="switchTab('search')">영상 발굴</button>
     <button class="tab" id="tabHot" onclick="switchTab('hot')">급상승 차트</button>
+    <button class="tab" id="tabScan" onclick="switchTab('scan')">채널 스캔 <span class="tabdot" id="uniDot">0</span></button>
     <button class="tab" id="tabTrend" onclick="switchTab('trend')">키워드 트렌드</button>
     <button class="tab" id="tabGuide" onclick="switchTab('guide')">가이드</button>
   </div>
@@ -355,7 +376,69 @@ body{transition:background .25s,color .25s}
 </section>
 </div>
 
-<!-- ═══ TAB 3: TREND ═══ -->
+<!-- ═══ TAB 3: SCAN (채널 유니버스) ═══ -->
+<div class="panel" id="panelScan">
+<section class="card">
+  <div class="eyebrow">Step 2 · 키워드 없이 아웃라이어 스캔</div>
+  <p style="color:var(--slate);margin-bottom:16px;max-width:700px">앱에 쌓인 <b style="color:var(--ink)">채널 유니버스</b>를 통째로 훑어, 각 채널이 <b style="color:var(--ink)">평소 내던 조회수(중앙값)보다 몇 배 터졌는지</b>를 계산합니다. 구독자 대비가 아니라 <b style="color:var(--ink)">자기 자신 대비</b>라, 진짜 "이 영상만 유난히 터진" 케이스가 잡힙니다. 검색어를 입력할 필요가 없습니다.</p>
+
+  <div class="unibar">
+    <div class="unistat"><span class="k">등록 채널</span><span class="v em" id="uniCnt">0</span></div>
+    <div class="unistat"><span class="k">스캔 대상</span><span class="v" id="uniTarget">0</span></div>
+    <div class="unistat"><span class="k">예상 쿼터</span><span class="v" id="uniQuota">0</span></div>
+    <span style="flex:1"></span>
+    <button class="btn btn-out" onclick="toggleUniPanel()">채널 관리</button>
+  </div>
+
+  <div class="row" style="margin-top:16px">
+    <select id="scSub">
+      <option value="0-2000000" selected>구독자 전체</option>
+      <option value="0-10000">구독자 1만 이하</option>
+      <option value="0-50000">구독자 5만 이하</option>
+      <option value="1000-100000">구독자 1천 ~ 10만</option>
+      <option value="10000-500000">구독자 1만 ~ 50만</option>
+    </select>
+    <select id="scRecent">
+      <option value="10">채널당 최근 10개</option>
+      <option value="20" selected>채널당 최근 20개</option>
+      <option value="30">채널당 최근 30개</option>
+      <option value="50">채널당 최근 50개</option>
+    </select>
+    <select id="scMax">
+      <option value="50">채널 50개</option>
+      <option value="100">채널 100개</option>
+      <option value="200" selected>채널 200개</option>
+      <option value="300">채널 300개</option>
+      <option value="500">채널 500개</option>
+    </select>
+    <select id="scDays">
+      <option value="7">최근 7일 업로드</option>
+      <option value="14">최근 14일</option>
+      <option value="30" selected>최근 30일</option>
+      <option value="90">최근 90일</option>
+      <option value="0">기간 무관</option>
+    </select>
+    <button class="btn btn-ink" id="scanBtn" onclick="runScan()">스캔 시작</button>
+    <button class="gem" onclick="scanGem()">💎 폭발 영상만 (채널평균 3배↑)</button>
+  </div>
+  <p class="hint" style="margin-top:12px">채널 유니버스는 <b>영상 발굴·급상승 차트를 쓸 때마다 자동으로 적립</b>됩니다. 처음이라면 「급상승 차트 불러오기」를 두세 번 돌려 채널을 모은 뒤 스캔하세요. 스캔은 채널당 1유닛 + 영상 50개당 1유닛이라, 200채널 × 20영상 기준 약 <b>280유닛</b>입니다.</p>
+</section>
+
+<section class="card" id="uniPanel" style="display:none">
+  <div class="eyebrow">채널 유니버스 관리</div>
+  <div class="row">
+    <input id="uniAdd" class="grow" placeholder="채널 핸들 직접 추가 (예: @gyeouljam91) — 1유닛" onkeydown="if(event.key==='Enter')addByHandle()">
+    <button class="btn btn-ink" onclick="addByHandle()">추가</button>
+    <button class="btn btn-out" onclick="exportUniverse()">⬇ 백업</button>
+    <button class="btn btn-out" onclick="document.getElementById('uniFile').click()">⬆ 복원</button>
+    <button class="btn btn-out" onclick="clearUniverse()" style="color:var(--bad)">전체 삭제</button>
+    <input type="file" id="uniFile" accept=".json" style="display:none" onchange="importUniverse(this)">
+  </div>
+  <div class="unilist" id="uniList"></div>
+</section>
+</div>
+
+<!-- ═══ TAB 4: TREND ═══ -->
 <div class="panel" id="panelTrend">
 <section class="card">
   <div class="eyebrow">Step 2 · 지금 사람들이 검색하는 말</div>
@@ -380,10 +463,10 @@ body{transition:background .25s,color .25s}
 </section>
 </div>
 
-<!-- ═══ TAB 4: GUIDE ═══ -->
+<!-- ═══ TAB 5: GUIDE ═══ -->
 <div class="panel" id="panelGuide">
 <section class="card">
-  <div class="eyebrow">사용 가이드 · v1.2 (2026.07)</div>
+  <div class="eyebrow">사용 가이드 · v1.3 (2026.09)</div>
 
   <div class="gsec">
     <h3>이 앱이 찾는 것 — 아웃라이어</h3>
@@ -400,12 +483,13 @@ body{transition:background .25s,color .25s}
   </div>
 
   <div class="gsec">
-    <h3>4개 탭, 하나의 파이프라인</h3>
+    <h3>5개 탭, 하나의 파이프라인</h3>
     <table class="gtable">
       <tr><th>탭</th><th>무엇을 하나</th><th>언제 쓰나</th><th>쿼터</th></tr>
       <tr><td>키워드 트렌드</td><td>유튜브 자동완성을 채굴해 사람들이 지금 검색하는 문장을 발견. 🗺 키워드 맵은 8개 투자 축을 한 번에, 📊 검색량 검증은 최근 30일 상위 영상 조회수 합계를 막대로 비교</td><td>소재가 안 떠오를 때 — 파이프라인의 출발점</td><td>채굴 0 · 검증 회당 101</td></tr>
       <tr><td>영상 발굴</td><td>키워드로 영상을 수집하고 구독자·총영상 대비 성과를 계산해 아웃라이어를 필터링</td><td>키워드가 정해졌을 때 레퍼런스 수집</td><td>회당 약 102~306</td></tr>
       <tr><td>급상승 차트</td><td>인기 급상승 차트를 통째로 수집. 기본값 「소비형 콘텐츠만」은 뉴스·인물·교육·노하우·과기 5개 차트를 병합해 뮤직비디오 노이즈를 원천 차단</td><td>매일 아침 트렌드 스캔 — 쿼터가 거의 안 들어 데일리용</td><td>회당 약 10~15</td></tr>
+      <tr><td><b>채널 스캔</b> <span style="color:var(--signal)">NEW</span></td><td>앱에 쌓인 채널 유니버스를 통째로 훑어, 각 채널이 <b>평소 조회수(중앙값)보다 몇 배</b> 터졌는지 계산. 검색어 입력이 필요 없음</td><td>키워드가 아니라 "요즘 뭐가 터졌나"부터 보고 싶을 때 — 데일리 메인</td><td>200채널×20영상 기준 약 280</td></tr>
       <tr><td>콘텐츠 제안 (Step 4)</td><td>필터링된 상위 20개 패턴으로 새 콘텐츠 5개(제목·훅·구성·형식)를 제안. Gemini 키로 앱 내 생성하거나, 프롬프트 복사로 Claude·GPT 활용</td><td>레퍼런스 수집 후 기획으로 넘어갈 때 — 파이프라인의 종착점</td><td>0 (Gemini는 별도 무료)</td></tr>
     </table>
   </div>
@@ -437,6 +521,20 @@ body{transition:background .25s,color .25s}
   </div>
 
   <div class="gsec">
+    <h3>채널 스캔은 어떻게 작동하나 (v1.3)</h3>
+    <p>유튜브 검색 API는 50개 수집에 100유닛이 듭니다. 반면 <b>채널의 업로드 목록을 훑는 것은 50개에 1유닛</b> — 100배 차이입니다. 채널 스캔은 이 구조를 이용합니다.</p>
+    <table class="gtable">
+      <tr><th>단계</th><th>내용</th></tr>
+      <tr><td>1. 유니버스 적립</td><td>「영상 발굴」·「급상승 차트」를 쓸 때마다 등장한 채널이 <b>자동으로</b> 앱에 저장됩니다. 별도 조작이 필요 없습니다. 「채널 관리」에서 핸들(@아이디)로 직접 추가할 수도 있습니다(1유닛).</td></tr>
+      <tr><td>2. 업로드 스캔</td><td>등록된 채널의 최근 영상을 채널당 1유닛으로 가져옵니다. 오래 스캔하지 않은 채널부터 순서대로 처리합니다.</td></tr>
+      <tr><td>3. 중앙값 계산</td><td>채널마다 최근 영상들의 <b>조회수 중앙값</b>을 구합니다. 평균이 아니라 중앙값을 쓰는 이유는, 터진 영상 하나가 평균을 끌어올려 기준이 무너지기 때문입니다. 쇼츠와 롱폼은 조회수 체급이 달라 <b>형태별로 따로</b> 계산합니다.</td></tr>
+      <tr><td>4. 배수 판정</td><td><b>채널배수 = 영상 조회수 ÷ 그 채널의 중앙값.</b> 구독자 5만 채널이 평소 3천 회 나오다 15만 회가 터지면 ×50이 찍힙니다. 이게 진짜 벤치마킹 재료입니다.</td></tr>
+    </table>
+    <p style="margin-top:12px"><b>표본 4개 미만이거나 중앙값이 0인 채널은 자동으로 제외</b>됩니다 — 기준선이 없으면 배수가 의미를 잃기 때문입니다. 처음 쓸 때는 「급상승 차트 불러오기」를 두세 번 돌려 채널을 100개 이상 모은 뒤 스캔하세요.</p>
+  </div>
+
+  <div class="gsec">
+
     <h3>쿼터 이해하기</h3>
     <p>YouTube API는 <b>하루 10,000유닛 무료</b>이며 한국시간 오후 4~5시경 초기화됩니다. 상단 카운터가 오늘 사용량입니다.</p>
     <table class="gtable">
@@ -554,6 +652,7 @@ body{transition:background .25s,color .25s}
         <th class="num" onclick="sortBy('views')">조회수 <span class="arr" id="a-views"></span></th>
         <th class="num" onclick="sortBy('subs')">구독자 <span class="arr" id="a-subs"></span></th>
         <th class="num" onclick="sortBy('vidCount')">채널 총영상 <span class="arr" id="a-vidCount"></span></th>
+        <th class="num scancol" onclick="sortBy('cmult')">채널배수 <span class="arr" id="a-cmult"></span></th>
         <th class="num" onclick="sortBy('mult')">성과배수 <span class="arr" id="a-mult"></span></th>
         <th onclick="sortBy('mult2')">성과도</th>
         <th onclick="sortBy('date')">게시일 <span class="arr" id="a-date"></span></th>
@@ -592,7 +691,7 @@ let API_KEY='';
 let allVideos=[], viewList=[];
 let sortKey='mult', sortDir=-1, formMode='all', quotaUsed=0;
 let currentMode='search';
-const tabData={search:null,hot:null};   // 탭별 마지막 결과 보존
+const tabData={search:null,hot:null,scan:null};   // 탭별 마지막 결과 보존
 function persistTab(mode){
   try{
     const d=tabData[mode];
@@ -602,7 +701,7 @@ function persistTab(mode){
   }catch(e){/* 용량 초과 시 무시 — 메모리 보존은 유지됨 */}
 }
 function restoreTabs(){
-  ['search','hot'].forEach(m=>{
+  ['search','hot','scan'].forEach(m=>{
     try{
       const d=JSON.parse(load('res_'+m)||'null');
       if(d&&Array.isArray(d.videos)&&d.videos.length)tabData[m]=d;
@@ -631,6 +730,10 @@ function renderPresetChips(){
 }
 window.addEventListener('DOMContentLoaded',()=>{
   renderPresetChips();
+  ['scSub','scRecent','scMax'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('change',renderUniverse);
+  });
   API_KEY=load('yt_api_key');
   if(API_KEY){document.getElementById('apiKey').value=API_KEY;keyOk();document.getElementById('keyCard').classList.add('closed');}
   if(load('theme')==='dark')setTheme('dark');
@@ -641,6 +744,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   updQuota(0);
   // 지난 검색 결과 복원 (새로고침·재접속에도 유지)
   restoreTabs();
+  renderUniverse();
   if(tabData.search){
     allVideos=tabData.search.videos;
     if(tabData.search.kw)document.getElementById('kw').value=tabData.search.kw;
@@ -648,7 +752,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
 });
 function switchTab(t){
-  ['Search','Hot','Trend','Guide'].forEach(n=>{
+  ['Search','Hot','Scan','Trend','Guide'].forEach(n=>{
     document.getElementById('tab'+n).classList.toggle('on',t===n.toLowerCase());
     document.getElementById('panel'+n).classList.toggle('on',t===n.toLowerCase());
   });
@@ -658,12 +762,14 @@ function switchTab(t){
   document.getElementById('tblCard').style.display=vidOnly;
   document.getElementById('hotWordsCard').style.display=(vidOnly==='none'||!allVideos.length)?'none':'';
   document.getElementById('ideaCard').style.display=(vidOnly==='none'||!allVideos.length)?'none':'';
-  if(t==='search'||t==='hot'){
+  if(t==='scan')renderUniverse();
+  if(t==='search'||t==='hot'||t==='scan'){
     currentMode=t;
     const d=tabData[t];
     if(d&&d.videos&&d.videos.length){
       allVideos=d.videos;
       if(t==='search'&&d.kw)document.getElementById('kw').value=d.kw;
+      document.getElementById('tblCard').classList.toggle('scanmode',t==='scan');
       applyFilters();
     }else{
       allVideos=[];viewList=[];
@@ -742,15 +848,19 @@ async function enrichChannels(videos){
   const chMap={};
   for(let i=0;i<chIds.length;i+=50){
     const u=new URL('https://www.googleapis.com/youtube/v3/channels');
-    u.search=new URLSearchParams({key:API_KEY,part:'statistics',id:chIds.slice(i,i+50).join(',')});
+    u.search=new URLSearchParams({key:API_KEY,part:'snippet,statistics,contentDetails',id:chIds.slice(i,i+50).join(',')});
     const r=await fetch(u);const j=await r.json();
     if(j.error)throw new Error(apiErrMsg(j.error));
     updQuota(1);
-    j.items.forEach(c=>chMap[c.id]={
-      subs:Number(c.statistics.subscriberCount)||0,
-      vids:Number(c.statistics.videoCount)||0
+    j.items.forEach(c=>{
+      chMap[c.id]={
+        subs:Number(c.statistics.subscriberCount)||0,
+        vids:Number(c.statistics.videoCount)||0
+      };
+      registerChannel(c);   // 채널 유니버스 자동 적립
     });
   }
+  saveUniverse();
   return videos.map(v=>{
     const views=Number(v.statistics.viewCount)||0;
     const ch=chMap[v.snippet.channelId]||{subs:0,vids:0};
@@ -921,7 +1031,7 @@ function sortBy(k){
 }
 function sortList(){
   viewList.sort((a,b)=>{
-    const x=sortKey==='date'?a.date.localeCompare(b.date):a[sortKey]-b[sortKey];
+    const x=sortKey==='date'?a.date.localeCompare(b.date):(a[sortKey]||0)-(b[sortKey]||0);
     return x*sortDir;
   });
 }
@@ -930,7 +1040,8 @@ function render(){
   document.getElementById('summary').classList.add('show');
   document.getElementById('ideaCard').style.display='';
   renderHotWords();
-  ['views','subs','vidCount','mult','date'].forEach(k=>{
+  document.getElementById('tblCard').classList.toggle('scanmode',currentMode==='scan');
+  ['views','subs','vidCount','mult','cmult','date'].forEach(k=>{
     const el=document.getElementById('a-'+k);
     if(el)el.textContent=sortKey===k?(sortDir===-1?'▼':'▲'):'';
   });
@@ -946,9 +1057,10 @@ function render(){
         <span class="sat">→</span></a></td>
       <td class="title"><a href="https://www.youtube.com/watch?v=${v.id}" target="_blank">${esc(v.title)}</a>
         <div class="ch">${esc(v.channel)}</div></td>
-      <td class="num">${fmt(v.views)}</td>
+      <td class="num">${fmt(v.views)}${v.vel?`<div class="vel">${fmt(Math.round(v.vel))}/일</div>`:''}</td>
       <td class="num">${fmt(v.subs)}</td>
       <td class="vidcnt"><span class="${v.vidCount<=100?'few':''}">${v.vidCount.toLocaleString()}개${v.vidCount<=100?' 🌱':''}</span></td>
+      <td class="mult scancol" style="color:${(v.cmult||0)>=10?'var(--signal)':(v.cmult||0)>=3?'var(--good)':'var(--slate)'}">${v.cmult?('×'+(v.cmult>=100?Math.round(v.cmult):v.cmult.toFixed(1))):'—'}</td>
       <td class="mult" style="color:${v.mult>=10?'var(--signal)':v.mult>=3?'var(--good)':'var(--slate)'}">×${v.mult>=100?Math.round(v.mult):v.mult.toFixed(1)}</td>
       <td><span class="badge b-${v.g}">${GRADE_LABEL[v.g]}</span></td>
       <td class="date">${v.date.slice(2).replace(/-/g,'.')}</td>
@@ -966,7 +1078,247 @@ function render(){
 }
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
-/* ───────── TAB3: 키워드 트렌드 ───────── */
+/* ───────── TAB3: 채널 유니버스 스캔 (v1.3) ─────────
+   원리 — 채널이 "평소 내던 조회수(중앙값)" 대비 몇 배 터졌는지로 아웃라이어 판정.
+   쿼터 — 채널당 playlistItems 1유닛 + 영상 50개당 videos 1유닛. 검색(100유닛/50개) 대비 100배 효율. */
+let UNI={};
+function loadUniverse(){
+  try{UNI=JSON.parse(load('ch_universe')||'{}')||{};}catch(e){UNI={};}
+  return UNI;
+}
+function saveUniverse(){
+  try{
+    // 용량 보호: 3000개 초과 시 오래된 것부터 정리
+    const keys=Object.keys(UNI);
+    if(keys.length>3000){
+      keys.sort((a,b)=>(UNI[a].ts||'').localeCompare(UNI[b].ts||''));
+      keys.slice(0,keys.length-3000).forEach(k=>delete UNI[k]);
+    }
+    store('ch_universe',JSON.stringify(UNI));
+  }catch(e){}
+  renderUniverse();
+}
+function registerChannel(c){
+  if(!c||!c.id)return;
+  const up=c.contentDetails?.relatedPlaylists?.uploads||'';
+  const prev=UNI[c.id]||{};
+  UNI[c.id]={
+    t:c.snippet?.title||prev.t||'(이름없음)',
+    s:Number(c.statistics?.subscriberCount)||prev.s||0,
+    v:Number(c.statistics?.videoCount)||prev.v||0,
+    u:up||prev.u||'',
+    ts:prev.ts||new Date().toISOString().slice(0,10),
+    ls:prev.ls||''
+  };
+}
+function uniArray(){
+  return Object.entries(UNI).map(([id,c])=>({id,...c}));
+}
+function scanTargets(){
+  const [lo,hi]=(document.getElementById('scSub')?.value||'0-2000000').split('-').map(Number);
+  const max=Number(document.getElementById('scMax')?.value||200);
+  return uniArray()
+    .filter(c=>c.u && c.s>=lo && c.s<=hi)
+    .sort((a,b)=>(a.ls||'').localeCompare(b.ls||''))   // 오래 안 본 채널 우선
+    .slice(0,max);
+}
+function renderUniverse(){
+  loadUniverse();
+  const all=uniArray();
+  const dot=document.getElementById('uniDot');
+  if(dot)dot.textContent=all.length;
+  const cntEl=document.getElementById('uniCnt');
+  if(!cntEl)return;
+  const tg=scanTargets();
+  const perCh=Number(document.getElementById('scRecent')?.value||20);
+  cntEl.textContent=all.length;
+  document.getElementById('uniTarget').textContent=tg.length;
+  document.getElementById('uniQuota').textContent=(tg.length+Math.ceil(tg.length*perCh/50)).toLocaleString()+'유닛';
+  const list=document.getElementById('uniList');
+  if(list && document.getElementById('uniPanel').style.display!=='none'){
+    const sorted=[...all].sort((a,b)=>b.s-a.s);
+    list.innerHTML = sorted.length
+      ? sorted.slice(0,400).map(c=>`<div class="unirow"><span class="nm">${esc(c.t)}</span><span class="sb">구독 ${fmt(c.s)} · 영상 ${c.v.toLocaleString()}개${c.ls?' · 스캔 '+c.ls.slice(5):''}</span><button class="del" onclick="delChannel('${c.id}')">✕</button></div>`).join('')
+      : '<div class="uni-empty">아직 등록된 채널이 없습니다. 「급상승 차트」나 「영상 발굴」을 한 번 돌리면 등장한 채널이 자동으로 쌓입니다.</div>';
+  }
+}
+function toggleUniPanel(){
+  const el=document.getElementById('uniPanel');
+  el.style.display = el.style.display==='none' ? '' : 'none';
+  renderUniverse();
+}
+function delChannel(id){delete UNI[id];saveUniverse();}
+function clearUniverse(){
+  if(!confirm('등록된 채널 '+Object.keys(UNI).length+'개를 모두 삭제할까요? 되돌릴 수 없습니다.'))return;
+  UNI={};saveUniverse();
+}
+function exportUniverse(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(UNI,null,1)],{type:'application/json'}));
+  a.download='채널유니버스_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+function importUniverse(inp){
+  const f=inp.files?.[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      let add=0;
+      Object.entries(d).forEach(([id,c])=>{if(!UNI[id]){UNI[id]=c;add++;}});
+      saveUniverse();
+      alert('채널 '+add+'개를 추가했습니다.');
+    }catch(e){showErr('백업 파일을 읽지 못했습니다.');}
+    inp.value='';
+  };
+  r.readAsText(f);
+}
+async function addByHandle(){
+  if(!API_KEY){showErr('먼저 API 키를 저장해 주세요. (Step 1)');return;}
+  let h=document.getElementById('uniAdd').value.trim();
+  if(!h){showErr('채널 핸들을 입력해 주세요. (예: @gyeouljam91)');return;}
+  h=h.replace(/^https?:\/\/(www\.)?youtube\.com\//,'').replace(/\/.*$/,'');
+  if(!h.startsWith('@'))h='@'+h;
+  hideErr();
+  try{
+    const u=new URL('https://www.googleapis.com/youtube/v3/channels');
+    u.search=new URLSearchParams({key:API_KEY,part:'snippet,statistics,contentDetails',forHandle:h});
+    const r=await fetch(u);const j=await r.json();
+    if(j.error)throw new Error(apiErrMsg(j.error));
+    updQuota(1);
+    if(!j.items?.length)throw new Error('해당 핸들의 채널을 찾지 못했습니다: '+h);
+    j.items.forEach(registerChannel);
+    saveUniverse();
+    document.getElementById('uniAdd').value='';
+  }catch(e){showErr(e.message);}
+}
+/* 병렬 배치 실행기 */
+async function inBatches(items,size,fn,onStep){
+  const out=[];let done=0;
+  for(let i=0;i<items.length;i+=size){
+    const chunk=items.slice(i,i+size);
+    const rs=await Promise.all(chunk.map(fn));
+    out.push(...rs);
+    done+=chunk.length;
+    if(onStep)onStep(done,items.length);
+  }
+  return out;
+}
+function median(arr){
+  if(!arr.length)return 0;
+  const a=[...arr].sort((x,y)=>x-y);
+  const m=Math.floor(a.length/2);
+  return a.length%2?a[m]:(a[m-1]+a[m])/2;
+}
+async function runScan(){
+  hideErr();
+  if(!API_KEY){showErr('먼저 API 키를 저장해 주세요. (Step 1)');return;}
+  loadUniverse();
+  const targets=scanTargets();
+  if(!targets.length){
+    showErr('스캔할 채널이 없습니다. 「급상승 차트 불러오기」를 한 번 돌리거나, 「채널 관리」에서 핸들을 직접 추가해 주세요.');
+    return;
+  }
+  const perCh=Number(document.getElementById('scRecent').value);
+  const days=Number(document.getElementById('scDays').value);
+  const btn=document.getElementById('scanBtn');
+  btn.disabled=true;btn.textContent='스캔 중...';
+  try{
+    /* 1단계 — 채널별 업로드 재생목록에서 최근 영상 ID 수집 (채널당 1유닛) */
+    const perChannel={};
+    await inBatches(targets,8,async c=>{
+      try{
+        const u=new URL('https://www.googleapis.com/youtube/v3/playlistItems');
+        u.search=new URLSearchParams({key:API_KEY,part:'contentDetails',playlistId:c.u,maxResults:String(Math.min(perCh,50))});
+        const r=await fetch(u);const j=await r.json();
+        updQuota(1);
+        if(j.error){
+          // 업로드 비공개·삭제 채널은 건너뜀
+          if(j.error.errors?.[0]?.reason==='quotaExceeded')throw new Error(apiErrMsg(j.error));
+          return null;
+        }
+        perChannel[c.id]=(j.items||[]).map(it=>it.contentDetails.videoId).filter(Boolean);
+      }catch(e){ if(/쿼터/.test(e.message))throw e; }
+      return null;
+    },(d,t)=>setStatus(`채널 업로드 목록 수집 중... (${d}/${t})`,(d/t)*45));
+
+    const allIds=[...new Set(Object.values(perChannel).flat())];
+    if(!allIds.length)throw new Error('수집된 영상이 없습니다. 채널 유니버스를 더 쌓은 뒤 다시 시도해 주세요.');
+
+    /* 2단계 — 영상 통계 일괄 조회 (50개당 1유닛) */
+    const batches=[];
+    for(let i=0;i<allIds.length;i+=50)batches.push(allIds.slice(i,i+50));
+    const vmap={};
+    await inBatches(batches,6,async ids=>{
+      const u=new URL('https://www.googleapis.com/youtube/v3/videos');
+      u.search=new URLSearchParams({key:API_KEY,part:'snippet,statistics,contentDetails',id:ids.join(',')});
+      const r=await fetch(u);const j=await r.json();
+      if(j.error)throw new Error(apiErrMsg(j.error));
+      updQuota(1);
+      (j.items||[]).forEach(v=>vmap[v.id]=v);
+      return null;
+    },(d,t)=>setStatus(`영상 통계 수집 중... (${d*50}/${allIds.length}개)`,45+(d/t)*45));
+
+    /* 3단계 — 채널 중앙값 대비 배수 계산 */
+    setStatus('아웃라이어 판정 중...',95);
+    const cutoff = days ? Date.now()-days*86400000 : 0;
+    const rows=[];
+    const today=new Date().toISOString().slice(0,10);
+    targets.forEach(c=>{
+      const ids=perChannel[c.id]||[];
+      const vids=ids.map(id=>vmap[id]).filter(Boolean);
+      if(vids.length<4)return;                       // 표본 4개 미만은 중앙값 신뢰 불가
+      // 쇼츠와 롱폼은 조회수 체급이 달라 섞으면 중앙값이 왜곡됨 → 형태별 분리 계산
+      const grp={s:[],l:[]};
+      vids.forEach(v=>{const d=parseDur(v.contentDetails.duration);grp[d>0&&d<=180?'s':'l'].push(Number(v.statistics.viewCount)||0);});
+      const medAll=median(vids.map(v=>Number(v.statistics.viewCount)||0));
+      const medS=grp.s.length>=4?median(grp.s):medAll;
+      const medL=grp.l.length>=4?median(grp.l):medAll;
+      if(medAll<=0)return;
+      UNI[c.id].ls=today;
+      vids.forEach(v=>{
+        const pub=new Date(v.snippet.publishedAt).getTime();
+        if(cutoff && pub<cutoff)return;
+        const views=Number(v.statistics.viewCount)||0;
+        const dur=parseDur(v.contentDetails.duration);
+        const ageDays=Math.max(1,(Date.now()-pub)/86400000);
+        const base=(dur>0&&dur<=180)?medS:medL;
+        const cmult=base>0?views/base:0;
+        rows.push({
+          id:v.id,title:v.snippet.title,channel:c.t,
+          thumb:v.snippet.thumbnails?.medium?.url||v.snippet.thumbnails?.default?.url||'',
+          views,subs:c.s,vidCount:c.v,
+          mult:c.s>0?views/c.s:(views>0?999:0),
+          cmult, vel:views/ageDays,
+          g:grade(cmult),                            // 스캔 탭의 성과도 = 채널 자기 대비 배수 기준
+          catId:v.snippet.categoryId||'',
+          dur,isShorts:dur>0&&dur<=180,
+          date:v.snippet.publishedAt.slice(0,10)
+        });
+      });
+    });
+    saveUniverse();
+    if(!rows.length)throw new Error('조건에 맞는 영상이 없습니다. 기간을 넓히거나 채널 수를 늘려 보세요.');
+    allVideos=rows;
+    tabData.scan={videos:allVideos};persistTab('scan');currentMode='scan';
+    sortKey='cmult';sortDir=-1;
+    setStatus(null);
+    applyFilters();
+  }catch(e){setStatus(null);showErr(e.message);}
+  finally{btn.disabled=false;btn.textContent='스캔 시작';}
+}
+function scanGem(){
+  document.getElementById('subMin').value='';
+  document.getElementById('subMax').value='';
+  document.getElementById('viewMin').value='';
+  document.getElementById('viewMax').value='';
+  document.getElementById('vidMax').value='';
+  document.querySelectorAll('.gbtn').forEach(b=>b.classList.toggle('on',b.dataset.g==='great'||b.dataset.g==='good'));
+  sortKey='cmult';sortDir=-1;
+  if(currentMode!=='scan'||!allVideos.length){runScan();}else{applyFilters();}
+}
+
+/* ───────── TAB4: 키워드 트렌드 ───────── */
 const selKw=new Set();
 function jsonp(url){
   return new Promise((res,rej)=>{
@@ -1301,8 +1653,8 @@ async function expandSearch(){
 /* ───────── export ───────── */
 function exportCSV(){
   if(!viewList.length)return;
-  const rows=[['제목','채널','조회수','구독자수','채널총영상수','성과배수','성과도','게시일','형태','URL']];
-  viewList.forEach(v=>rows.push([v.title,v.channel,v.views,v.subs,v.vidCount,v.mult.toFixed(2),GRADE_LABEL[v.g],v.date,v.isShorts?'Shorts':'롱폼','https://www.youtube.com/watch?v='+v.id]));
+  const rows=[['제목','채널','조회수','일평균조회수','구독자수','채널총영상수','채널배수','성과배수','성과도','게시일','형태','URL']];
+  viewList.forEach(v=>rows.push([v.title,v.channel,v.views,v.vel?Math.round(v.vel):'',v.subs,v.vidCount,v.cmult?v.cmult.toFixed(2):'',v.mult.toFixed(2),GRADE_LABEL[v.g],v.date,v.isShorts?'Shorts':'롱폼','https://www.youtube.com/watch?v='+v.id]));
   const csv='\ufeff'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
