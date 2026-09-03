@@ -385,7 +385,7 @@ body{transition:background .25s,color .25s}
 
 <!-- NAV -->
 <nav class="nav">
-  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v1.4</span></span>
+  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v1.5</span></span>
   <div class="tabs">
     <button class="tab on" id="tabDiscover" onclick="switchTab('discover')">어제의 발견</button>
     <button class="tab" id="tabSearch" onclick="switchTab('search')">영상 발굴</button>
@@ -455,6 +455,16 @@ body{transition:background .25s,color .25s}
   <div class="eyebrow">Step 2 · 검색어 없이 발견</div>
   <button class="bigbtn" id="discBtn" onclick="runDiscover()">🔥 어제 터진 영상 찾기<span class="sub">키워드 입력 없음 · KST 기준</span></button>
   <div class="daterange" id="discRange">—</div>
+  <div class="row" style="margin-top:14px">
+    <button class="btn btn-out" id="uniDiscBtn" onclick="runDiscoverUniverse()" style="flex:1;min-width:280px;padding:14px 20px;border-color:var(--arc);color:var(--signal);font-weight:600">📡 유니버스에서 찾기 — 검색 쿼터 0</button>
+    <select id="discUniMax">
+      <option value="150">채널 150개</option>
+      <option value="300" selected>채널 300개</option>
+      <option value="500">채널 500개</option>
+      <option value="800">채널 800개</option>
+    </select>
+    <button class="btn btn-out" id="probeBtn" onclick="apiProbe()">🔎 API 1회 진단</button>
+  </div>
   <div class="row" style="margin-top:22px">
     <select id="discWhen" onchange="updDiscRange()">
       <option value="yesterday" selected>어제 (KST 0시~24시)</option>
@@ -470,6 +480,10 @@ body{transition:background .25s,color .25s}
       <option value="KR" selected>한국 (KR)</option>
       <option value="US">미국 (US) · 해외 성공 포맷</option>
       <option value="JP">일본 (JP)</option>
+    </select>
+    <select id="discPages">
+      <option value="1" selected>호출당 50개</option>
+      <option value="2">호출당 100개 (검색 2배)</option>
     </select>
     <button class="btn btn-out" id="krOnlyBtn" onclick="toggleKrOnly()">🇰🇷 한국어 제목 우선</button>
   </div>
@@ -623,7 +637,7 @@ body{transition:background .25s,color .25s}
 <!-- ═══ TAB 6: GUIDE ═══ -->
 <div class="panel" id="panelGuide">
 <section class="card">
-  <div class="eyebrow">사용 가이드 · v1.4 (2026.09)</div>
+  <div class="eyebrow">사용 가이드 · v1.5 (2026.09)</div>
   <div id="guideBody"></div>
 </section>
 </div>
@@ -683,6 +697,10 @@ body{transition:background .25s,color .25s}
 </section>
 
 <div class="err" id="errBox"></div>
+<section class="card" id="diagCard" style="display:none;margin-top:24px">
+  <div class="eyebrow" onclick="toggleDiag()" style="cursor:pointer">수집 진단 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--slate)" id="diagSum"></span><span style="margin-left:auto;font-size:12px;color:var(--slate)">▼ 접기/펼치기</span></div>
+  <div id="diagBody"></div>
+</section>
 <div id="status"><span id="statusTxt"></span><div class="bar"><i id="barFill"></i></div></div>
 
 <!-- 인사이트 스트립 -->
@@ -771,7 +789,7 @@ body{transition:background .25s,color .25s}
 </section>
 
 <footer>
-  <b>겨울잠 아웃라이어 파인더 v1.4</b>
+  <b>겨울잠 아웃라이어 파인더 v1.5</b>
   <span>YouTube Data API v3 · 모든 데이터는 당신의 브라우저 안에서만 처리됩니다 · 채널배수는 누적 조회수 기반 상대 성과, VPH는 초기 성장 속도 — 서로 다른 것을 재는 지표입니다</span>
 </footer>
 </div>
@@ -1063,8 +1081,15 @@ async function apiGet(path,params,bucket){
   u.search=new URLSearchParams({key:API_KEY,...params});
   const r=await fetch(u);
   const j=await r.json().catch(()=>({error:{message:'응답을 해석하지 못했습니다.'}}));
-  addQ(bucket,1);
-  if(j.error)throw new Error(apiErrMsg(j.error));
+  /* 400 badRequest는 요청 자체가 거부된 것이라 할당량이 차감되지 않는다 — 카운터도 올리지 않는다 */
+  if(!(j.error&&j.error.code===400))addQ(bucket,1);
+  if(j.error){
+    const err=new Error(apiErrMsg(j.error));
+    err.code=j.error.code;
+    err.reason=j.error.errors?.[0]?.reason||'';
+    err.raw=j.error.message||'';
+    throw err;
+  }
   return j;
 }
 function hangulRatio(s){
@@ -1248,6 +1273,34 @@ function resolveCategories(preset){
   return out.length>=Math.ceil(CAT_NAMES[preset].length/2)?[...new Set(out)]:CAT_FALLBACK[preset];
 }
 
+/* ───────── 진단 기록 ─────────
+   v1.4에서 search 실패를 조용히 삼킨 탓에 "결과 0"과 "전부 에러"를 구분할 수 없었다.
+   이제 모든 검색 호출의 결과·에러를 남기고 화면에 표시한다. */
+let DIAG=[];
+function diagAdd(label,count,err){
+  DIAG.push({label,count,err:err?(err.raw||err.message):'',reason:err?.reason||'',code:err?.code||''});
+}
+function renderDiag(){
+  const card=document.getElementById('diagCard');
+  if(!card)return;
+  if(!DIAG.length){card.style.display='none';return;}
+  card.style.display='';
+  const okN=DIAG.filter(d=>!d.err).length, errN=DIAG.filter(d=>d.err).length;
+  const got=DIAG.reduce((s,d)=>s+(d.count||0),0);
+  document.getElementById('diagSum').innerHTML=
+    `호출 ${DIAG.length}회 · 성공 ${okN} · 실패 ${errN} · 수집 videoId ${got}개`;
+  document.getElementById('diagBody').innerHTML=
+    `<table class="gtable"><tr><th>호출</th><th>결과</th><th>비고</th></tr>`+
+    DIAG.map(d=>`<tr><td>${esc(d.label)}</td>
+      <td style="color:${d.err?'var(--worst)':(d.count?'var(--good)':'var(--slate)')}">${d.err?'실패':d.count+'건'}</td>
+      <td>${d.err?esc((d.reason?'['+d.reason+'] ':'')+d.err).slice(0,160):(d.count?'':'결과 없음')}</td></tr>`).join('')+
+    `</table>`;
+}
+function toggleDiag(){
+  const b=document.getElementById('diagBody');
+  b.style.display=b.style.display==='none'?'':'none';
+}
+
 /* ───────── 영상 레코드 빌드 ───────── */
 function buildVideo(v,ch){
   const dur=parseDur(v.contentDetails?.duration);
@@ -1406,6 +1459,122 @@ async function attachBaselines(videos,onStep){
 }
 
 /* ───────── STEP 1~9 · 어제의 발견 ───────── */
+/* 발견용 광역 시드 — 특정 주제어가 아니라 한국어 제목에 두루 쓰이는 훅 단어.
+   q 없는 검색이 막힌 프로젝트에서도 넓은 표본을 확보하기 위한 폴백 경로다. */
+const DISCOVER_SEEDS=['정리','이유','방법','현실','근황','총정리','후기','충격','추천','비교','변화','전망','실화','공개','정부','금리','부동산','주식','월급','노후'];
+async function searchCall(params){
+  return apiGet('search',params,'search');
+}
+/* 검색 1회만 써서 원인을 확인하는 진단 버튼 */
+async function apiProbe(){
+  hideErr();
+  if(!API_KEY){showErr('먼저 API 키를 저장해 주세요. (Step 1)');return;}
+  const btn=document.getElementById('probeBtn');
+  btn.disabled=true;btn.textContent='진단 중...';
+  DIAG=[];
+  const region=document.getElementById('discRegion').value;
+  const win=discoverWindow(document.getElementById('discWhen').value);
+  const base={part:'id',type:'video',maxResults:'50',regionCode:region};
+  const tests=[
+    ['① q없음 + 기간',{...base,order:'viewCount',publishedAfter:win.after,publishedBefore:win.before}],
+    ['② q없음 + 기간 + 카테고리27',{...base,order:'viewCount',publishedAfter:win.after,publishedBefore:win.before,videoCategoryId:'27'}],
+    ['③ q="정리" + 기간',{...base,order:'viewCount',q:'정리',publishedAfter:win.after,publishedBefore:win.before}],
+    ['④ q="정리" 기간 없음',{...base,order:'viewCount',q:'정리'}]
+  ];
+  for(const [label,params] of tests){
+    try{
+      const j=await searchCall(params);
+      diagAdd(label,(j.items||[]).filter(it=>it.id?.videoId).length,null);
+    }catch(e){diagAdd(label,0,e);if(isQuotaErr(e))break;}
+  }
+  renderDiag();
+  const okQless=DIAG[0]&&!DIAG[0].err&&DIAG[0].count>0;
+  const okSeed=DIAG[2]&&!DIAG[2].err&&DIAG[2].count>0;
+  showErr(okQless?'q 없는 검색이 정상 동작합니다. 결과가 비었다면 기간·지역 조건 문제입니다.'
+    :okSeed?'q 없는 검색은 이 프로젝트에서 결과를 주지 않습니다. 시드 스윕 폴백이 자동으로 동작합니다.'
+    :'검색 API 자체가 막혀 있습니다. 아래 진단표의 사유를 확인하세요 (키 제한·할당량이 가장 흔합니다).');
+  btn.disabled=false;btn.textContent='🔎 API 1회 진단';
+}
+/* 등록된 채널 유니버스만으로 발견 — 검색 쿼터를 전혀 쓰지 않는다 */
+async function collectFromUniverse(targets,perCh,cutoff,onStep){
+  const rows=[];const today=kstYmd(0);
+  await inBatches(targets,5,async c=>{
+    const base=await getBaseline(c.channelId,c.uploadsPlaylist,Math.max(perCh,SET.baseMin*3));
+    if(UNI[c.channelId]){UNI[c.channelId].lastScanned=today;UNI[c.channelId].lastScannedAt=Date.now();}
+    if(!base)return null;
+    base.forEach(b=>{
+      const pub=new Date(b.publishedAt).getTime();
+      if(cutoff&&pub<cutoff)return;
+      const ageHours=(Date.now()-pub)/3600000;
+      const v=applyGrade({
+        id:b.id,title:'',channelId:c.channelId,channel:c.channelTitle,thumb:'',
+        publishedAt:b.publishedAt,date:b.publishedAt.slice(0,10),
+        views:b.views,likes:null,comments:null,
+        dur:b.dur,format:formatOf(b.dur),catId:'',
+        subs:c.subscriberCount,vidCount:c.videoCount,uploads:c.uploadsPlaylist,
+        vps:(c.subscriberCount!=null&&c.subscriberCount>0)?b.views/c.subscriberCount:null,
+        cOut:null,baseN:0,baseMed:0,
+        ageHours,lvph:b.views/Math.max(ageHours,1),
+        rvph:null,accel:null,snapAt:null,cluster:0,discoveredAt:Date.now()
+      });
+      computeOutlier(v,base);applyGrade(v);
+      rows.push(v);
+    });
+    return null;
+  },onStep);
+  saveUniverse();
+  return rows;
+}
+async function hydrateTop(rows,limit,fromPct){
+  rows.sort((a,b)=>(b.cOut??0)-(a.cOut??0));
+  const top=rows.slice(0,limit);
+  const items=await fetchVideoDetails(top.map(v=>v.id),
+    (d,t)=>setStatus(`제목·썸네일 수집 중... (${d}/${t})`,fromPct+(d/t)*(96-fromPct)));
+  const meta={};items.forEach(v=>meta[v.id]=v);
+  return top.filter(v=>meta[v.id]).map(v=>{
+    const m=meta[v.id];
+    v.title=m.snippet.title;
+    v.thumb=m.snippet.thumbnails?.medium?.url||m.snippet.thumbnails?.default?.url||'';
+    v.catId=m.snippet.categoryId||'';
+    v.channel=m.snippet.channelTitle||v.channel;
+    v.likes=m.statistics?.likeCount!=null?Number(m.statistics.likeCount):null;
+    v.comments=m.statistics?.commentCount!=null?Number(m.statistics.commentCount):null;
+    return v;
+  });
+}
+async function runDiscoverUniverse(){
+  hideErr();
+  if(!API_KEY){showErr('먼저 API 키를 저장해 주세요. (Step 1)');return;}
+  loadUniverse();
+  const btn=document.getElementById('uniDiscBtn');
+  btn.disabled=true;const lbl=btn.textContent;btn.textContent='유니버스 스캔 중...';
+  try{
+    const win=discoverWindow(document.getElementById('discWhen').value);
+    const cutoff=new Date(win.after).getTime();
+    const maxCh=Number(document.getElementById('discUniMax').value);
+    const targets=uniArray()
+      .filter(c=>c.uploadsPlaylist)
+      .filter(c=>c.subscriberCount==null||c.subscriberCount<=SET.preSubs)
+      .sort((a,b)=>(a.lastScannedAt||0)-(b.lastScannedAt||0))
+      .slice(0,maxCh);
+    if(!targets.length)throw new Error('유니버스에 채널이 없습니다. 「채널 관리」에서 핸들을 추가하거나 「영상 발굴」을 한 번 돌리세요.');
+    DIAG=[];diagAdd(`유니버스 경로 · 채널 ${targets.length}개 · 검색 쿼터 0`,targets.length,null);renderDiag();
+    const rows=await collectFromUniverse(targets,50,cutoff,
+      (d,t)=>setStatus(`유니버스 스캔 중... (${d}/${t} 채널) · 구간 ${win.label}`,(d/t)*72));
+    if(!rows.length)throw new Error(`${targets.length}개 채널 중 해당 구간(${win.label})에 올라온 영상이 없습니다. 기간을 「최근 7일」로 넓혀 보세요.`);
+    setStatus('상위 후보 제목·썸네일 수집 중...',76);
+    const final=await hydrateTop(rows,300,76);
+    if(!final.length)throw new Error('상세 정보를 가져오지 못했습니다.');
+    allVideos=final;
+    buildClusters(allVideos);
+    allVideos.forEach(v=>dbPut('videos',v));
+    tabData.discover={videos:allVideos,win:win.label};persistTab('discover');
+    currentMode='discover';sortKey='cOut';sortDir=-1;
+    setStatus(null);applyFilters();
+    document.getElementById('tblCard').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){setStatus(null);showErr(e.message);}
+  finally{btn.disabled=false;btn.textContent=lbl;}
+}
 function toggleKrOnly(){
   krOnly=!krOnly;
   document.getElementById('krOnlyBtn').classList.toggle('on',krOnly);
@@ -1423,38 +1592,82 @@ async function runDiscover(){
     const preset=document.getElementById('discPreset').value;
     const win=discoverWindow(document.getElementById('discWhen').value);
 
-    /* STEP 1 — 키워드(q) 없는 search.list를 카테고리 × 정렬 조합으로 */
+    /* STEP 1 — 프로브 먼저, 그 다음 폴백 체인 */
+    DIAG=[];renderDiag();
     setStatus('카테고리 목록 확인 중...',3);
-    await loadCategories(region);
-    const cats=resolveCategories(preset);
-    const orders=['viewCount','date'];
-    const jobs=[];
-    cats.forEach(c=>orders.forEach(o=>jobs.push({cat:c,order:o})));
-    jobs.push({cat:'',order:'viewCount'});          // 카테고리 미지정 보완 1회
-    if(quotaLeft('search')<jobs.length){
-      throw new Error(`검색 버킷이 부족합니다. 필요 ${jobs.length}회 / 남은 ${quotaLeft('search')}회. 카테고리 프리셋을 「투자·지식형」으로 줄이거나 ⚙설정에서 한도를 조정하세요.`);
-    }
+    await loadCategories(region);   // 30일 캐시 · 하드코딩 폴백은 실패 시에만
+    const pages=Number(document.getElementById('discPages').value);
     const idSet=new Set();
-    let step=0;
-    for(const job of jobs){
-      step++;
-      setStatus(`키워드 없이 수집 중... (${step}/${jobs.length})`,3+(step/jobs.length)*32);
-      try{
-        const j=await apiGet('search',{
-          part:'id',type:'video',maxResults:'50',regionCode:region,
-          order:job.order,publishedAfter:win.after,publishedBefore:win.before,
-          ...(job.cat?{videoCategoryId:job.cat}:{}),
-          ...(region==='KR'?{relevanceLanguage:'ko'}:{})
-        },'search');
-        (j.items||[]).forEach(it=>{if(it.id?.videoId)idSet.add(it.id.videoId);});
-      }catch(e){
-        if(isQuotaErr(e))throw e;
-        /* 일부 카테고리는 해당 지역에서 검색 결과가 없거나 지원되지 않는다 — 건너뛴다 */
+    const collect=async(label,params)=>{
+      let token='',got=0;
+      for(let p=0;p<pages;p++){
+        try{
+          const j=await searchCall({...params,...(token?{pageToken:token}:{})});
+          const n=(j.items||[]).filter(it=>it.id?.videoId).length;
+          (j.items||[]).forEach(it=>{if(it.id?.videoId)idSet.add(it.id.videoId);});
+          got+=n;token=j.nextPageToken;
+          if(!token)break;
+        }catch(e){
+          if(isQuotaErr(e))throw e;
+          diagAdd(label+(p?` p${p+1}`:''),0,e);
+          return {got,err:e};
+        }
+      }
+      diagAdd(label,got,null);
+      return {got,err:null};
+    };
+    const baseP={part:'id',type:'video',maxResults:'50',regionCode:region,
+                 publishedAfter:win.after,publishedBefore:win.before};
+
+    /* 1-A 프로브: 카테고리 없이 1회. q 없는 검색이 이 프로젝트에서 통하는지 먼저 확인해
+       실패 시 카테고리 10회를 낭비하지 않는다. */
+    setStatus('검색 방식 확인 중...(프로브)',5);
+    const probe=await collect('프로브 · q없음 · 조회수순',{...baseP,order:'viewCount'});
+    let mode='qless';
+    if(!probe.got){
+      mode='seed';
+      diagAdd('→ q 없는 검색이 결과를 주지 않아 시드 키워드 방식으로 전환',0,null);
+    }
+
+    if(mode==='qless'){
+      const cats=resolveCategories(preset);
+      const jobs=[{cat:'',order:'date'}];
+      cats.forEach(c=>['viewCount','date'].forEach(o=>jobs.push({cat:c,order:o})));
+      const budget=Math.max(0,Math.min(jobs.length,quotaLeft('search')-2));
+      let errStreak=0,st=0;
+      for(const job of jobs.slice(0,budget)){
+        st++;
+        setStatus(`키워드 없이 수집 중... (${st}/${budget}) · 누적 ${idSet.size}개`,8+(st/budget)*27);
+        const catName=job.cat?(CATS?.find(c=>c.id===job.cat)?.title||('cat'+job.cat)):'전체';
+        const r=await collect(`${catName} · ${job.order==='date'?'최신순':'조회수순'}`,
+          {...baseP,order:job.order,...(job.cat?{videoCategoryId:job.cat}:{})});
+        errStreak=r.err?errStreak+1:0;
+        if(errStreak>=3){diagAdd('→ 연속 3회 실패로 중단 (쿼터 보호)',0,null);break;}
       }
     }
+    /* 1-B 폴백: q 없는 방식이 막혔거나 수확이 너무 적으면 시드 키워드로 넓게 훑는다.
+       사용자가 키워드를 입력하는 게 아니라 앱이 자동으로 도는 것이므로 UX는 그대로다. */
+    if(mode==='seed'||idSet.size<40){
+      const seeds=sample(DISCOVER_SEEDS,Math.min(10,Math.max(0,quotaLeft('search')-1)));
+      let st=0;
+      for(const q of seeds){
+        st++;
+        setStatus(`시드 스윕 「${q}」 (${st}/${seeds.length}) · 누적 ${idSet.size}개`,8+(st/seeds.length)*27);
+        const r=await collect(`시드 「${q}」`,{...baseP,order:'viewCount',q,
+          ...(region==='KR'?{relevanceLanguage:'ko'}:{})});
+        if(r.err&&st>=3)break;
+      }
+    }
+    renderDiag();
+
     /* STEP 2 — videoId 중복 제거 */
     const ids=[...idSet];
-    if(!ids.length)throw new Error('해당 구간에 수집된 영상이 없습니다. 기간을 「최근 48시간」으로 넓히거나 프리셋을 확장해 보세요.');
+    if(!ids.length){
+      const errs=DIAG.filter(d=>d.err);
+      throw new Error(errs.length
+        ? `검색이 모두 실패했습니다. 첫 사유: ${errs[0].reason||''} ${errs[0].err}`.trim()+' — 아래 진단표를 확인하세요.'
+        : '해당 구간에 수집된 영상이 없습니다. 「📡 유니버스에서 찾기」를 쓰면 검색 쿼터 없이 등록된 채널에서 바로 찾을 수 있습니다.');
+    }
 
     /* STEP 3 — 영상 상세 */
     setStatus(`영상 ${ids.length}개 상세 수집 중...`,38);
@@ -1567,50 +1780,12 @@ async function runScan(){
   btn.disabled=true;btn.textContent='스캔 중...';
   try{
     const cutoff=days?Date.now()-days*86400000:0;
-    const today=kstYmd(0);
-    const rows=[];
-    await inBatches(targets,5,async c=>{
-      const base=await getBaseline(c.channelId,c.uploadsPlaylist,Math.max(perCh,SET.baseMin*3));
-      if(UNI[c.channelId]){UNI[c.channelId].lastScanned=today;UNI[c.channelId].lastScannedAt=Date.now();}
-      if(!base)return null;
-      base.forEach(b=>{
-        const pub=new Date(b.publishedAt).getTime();
-        if(cutoff&&pub<cutoff)return;
-        const ageHours=(Date.now()-pub)/3600000;
-        const v=applyGrade({
-          id:b.id,title:'',channelId:c.channelId,channel:c.channelTitle,thumb:'',
-          publishedAt:b.publishedAt,date:b.publishedAt.slice(0,10),
-          views:b.views,likes:null,comments:null,
-          dur:b.dur,format:formatOf(b.dur),catId:'',
-          subs:c.subscriberCount,vidCount:c.videoCount,uploads:c.uploadsPlaylist,
-          vps:(c.subscriberCount!=null&&c.subscriberCount>0)?b.views/c.subscriberCount:null,
-          cOut:null,baseN:0,baseMed:0,
-          ageHours,lvph:b.views/Math.max(ageHours,1),
-          rvph:null,accel:null,snapAt:null,cluster:0,discoveredAt:Date.now()
-        });
-        computeOutlier(v,base);applyGrade(v);
-        rows.push(v);
-      });
-      return null;
-    },(d,t)=>setStatus(`채널 스캔 중... (${d}/${t})`,(d/t)*70));
-    saveUniverse();
+    const rows=await collectFromUniverse(targets,perCh,cutoff,
+      (d,t)=>setStatus(`채널 스캔 중... (${d}/${t})`,(d/t)*70));
     if(!rows.length)throw new Error('조건에 맞는 영상이 없습니다. 기간을 넓히거나 채널 수를 늘려 보세요.');
-
     /* baseline은 제목·썸네일을 갖고 있지 않으므로 상위 후보만 상세 보강 */
-    rows.sort((a,b)=>(b.cOut??0)-(a.cOut??0));
-    const top=rows.slice(0,300);
     setStatus('상위 후보 제목·썸네일 수집 중...',78);
-    const items=await fetchVideoDetails(top.map(v=>v.id),(d,t)=>setStatus(`제목·썸네일 수집 중... (${d}/${t})`,78+(d/t)*20));
-    const meta={};items.forEach(v=>meta[v.id]=v);
-    const final=top.filter(v=>meta[v.id]).map(v=>{
-      const m=meta[v.id];
-      v.title=m.snippet.title;
-      v.thumb=m.snippet.thumbnails?.medium?.url||m.snippet.thumbnails?.default?.url||'';
-      v.catId=m.snippet.categoryId||'';
-      v.likes=m.statistics?.likeCount!=null?Number(m.statistics.likeCount):null;
-      v.comments=m.statistics?.commentCount!=null?Number(m.statistics.commentCount):null;
-      return v;
-    });
+    const final=await hydrateTop(rows,300,78);
     if(!final.length)throw new Error('상세 정보를 가져오지 못했습니다.');
     allVideos=final;
     buildClusters(allVideos);
@@ -2428,8 +2603,10 @@ function switchTab(t){
     document.getElementById('panel'+n).classList.toggle('on',t===n.toLowerCase());
   });
   const isResult=RESULT_TABS.includes(t);
-  ['filterCard','summary','tblCard','insight','hotWordsCard','ideaCard'].forEach(id=>{
-    document.getElementById(id).style.display=isResult?'':'none';
+  ['filterCard','summary','tblCard','insight','hotWordsCard','ideaCard','diagCard'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(id==='diagCard')el.style.display=(isResult&&DIAG.length)?'':'none';
+    else el.style.display=isResult?'':'none';
   });
   if(t==='radar')renderUniverse();
   if(t==='board')renderBoard();
@@ -2615,6 +2792,21 @@ function renderGuide(){
       <tr><td>🎵 노이즈 제거</td><td>음악·MV·영화·스포츠·엔터 카테고리 제외</td></tr>
       <tr><td>🇰🇷 한국어 제목 우선</td><td>제목의 한글 비율 ≥30% — <b>YouTube 공식 언어 판정이 아니라 앱 자체 추정</b>입니다</td></tr>
     </table>
+  </div>
+
+  <div class="gsec">
+    <h3>결과가 0건일 때 — v1.5에서 바뀐 것</h3>
+    <p>v1.4는 검색 실패를 조용히 넘겨서 <b>"결과가 없는 것"과 "전부 에러난 것"을 구분할 수 없었습니다.</b> 검색 쿼터만 소모되고 화면엔 아무것도 안 뜨는 상태가 이래서 생깁니다. v1.5는 다음을 바꿨습니다.</p>
+    <table class="gtable">
+      <tr><th>변경</th><th>내용</th></tr>
+      <tr><td>진단 표시</td><td>모든 검색 호출의 성공·실패·수집 건수를 <b>수집 진단</b> 카드에 남깁니다. 실패 사유(reason)도 그대로 보여줍니다</td></tr>
+      <tr><td>프로브 우선</td><td>카테고리 10회를 돌리기 전에 <b>1회만 먼저 던져</b> q 없는 검색이 통하는지 확인합니다. 안 통하면 나머지 10회를 낭비하지 않고 곧장 폴백으로 갑니다</td></tr>
+      <tr><td>시드 스윕 폴백</td><td>q 없는 검색이 막혔거나 수확이 40건 미만이면, 앱이 <b>자동으로</b> 광역 훅 단어(정리·이유·방법·현실·근황…)로 훑습니다. 사용자가 키워드를 입력하는 게 아닙니다</td></tr>
+      <tr><td>연속 실패 중단</td><td>3회 연속 실패하면 즉시 멈춰 검색 쿼터를 보호합니다</td></tr>
+      <tr><td>쿼터 회계 수정</td><td>400 badRequest는 요청이 실행되지 않으므로 카운터를 올리지 않습니다</td></tr>
+      <tr><td>📡 유니버스 경로</td><td><b>검색 API를 아예 쓰지 않는 우회로.</b> 등록된 채널의 업로드 목록만 훑어 같은 기간의 아웃라이어를 찾습니다</td></tr>
+    </table>
+    <p style="margin-top:12px"><b>🔎 API 1회 진단</b> 버튼은 검색 4회로 원인을 특정합니다 — ①q없음+기간 ②q없음+기간+카테고리 ③q있음+기간 ④q있음+기간없음. 어디서부터 0이 되는지가 곧 원인입니다.</p>
   </div>
 
   <div class="gsec">
