@@ -435,7 +435,7 @@ tr:hover td.actcol{background:var(--row-hover)}
 
 <!-- NAV -->
 <nav class="nav">
-  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v2.3</span></span>
+  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v2.4</span></span>
   <div class="tabs">
     <button class="tab" id="tabCollect" onclick="switchTab('collect')">① 채널 모으기 <span class="tabdot" id="uniDot">0</span></button>
     <button class="tab on" id="tabDiscover" onclick="switchTab('discover')">② 오늘의 발견</button>
@@ -722,7 +722,7 @@ tr:hover td.actcol{background:var(--row-hover)}
 <!-- ═══ GUIDE ═══ -->
 <div class="panel" id="panelGuide">
 <section class="card">
-  <div class="eyebrow">사용 가이드 · v2.3 (2026.09)</div>
+  <div class="eyebrow">사용 가이드 · v2.4 (2026.09)</div>
   <div id="guideBody"></div>
 </section>
 </div>
@@ -748,7 +748,17 @@ tr:hover td.actcol{background:var(--row-hover)}
       <input type="number" id="outMin" placeholder="예: 5">
     </div>
     <div class="fg">
-      <label>성과도 <span id="gradeBasis" class="gradenote"></span></label>
+      <label>조회/구독 ≥</label>
+      <input type="number" id="vpsMin" placeholder="예: 2" step="0.1">
+    </div>
+    <div class="fg">
+      <label>성과도 기준
+        <select id="gradeModeSel" onchange="setGradeMode(this.value)" style="margin-left:8px;padding:4px 8px;font-size:12px;height:auto;border-radius:10px">
+          <option value="impact" selected>터짐 지수 (권장)</option>
+          <option value="cOut">채널배수만</option>
+          <option value="vps">조회/구독만</option>
+        </select>
+        <span id="gradeBasis" class="gradenote"></span></label>
       <div class="gset">
         <button class="gbtn g-great on" data-g="great" onclick="toggleGrade(this)">Great</button>
         <button class="gbtn g-good on" data-g="good" onclick="toggleGrade(this)">Good</button>
@@ -854,7 +864,7 @@ tr:hover td.actcol{background:var(--row-hover)}
         <th class="num" onclick="sortBy('rvph')">최근 VPH <span class="arr" id="a-rvph"></span></th>
         <th class="num" onclick="sortBy('accel')">가속 <span class="arr" id="a-accel"></span></th>
         <th class="num" onclick="sortBy('ageHours')">경과 <span class="arr" id="a-ageHours"></span></th>
-        <th onclick="sortBy('cOut')">성과도</th>
+        <th class="num" onclick="sortBy('impact')">성과도 <span class="arr" id="a-impact"></span></th>
         <th>형태</th>
         <th class="actcol">담기</th>
       </tr></thead>
@@ -881,7 +891,7 @@ tr:hover td.actcol{background:var(--row-hover)}
 </section>
 
 <footer>
-  <b>겨울잠 아웃라이어 파인더 v2.3</b>
+  <b>겨울잠 아웃라이어 파인더 v2.4</b>
   <span>YouTube Data API v3 · 모든 데이터는 당신의 브라우저 안에서만 처리됩니다 · 채널배수는 누적 조회수 기반 상대 성과, VPH는 초기 성장 속도 — 서로 다른 것을 재는 지표입니다</span>
 </footer>
 </div>
@@ -902,7 +912,7 @@ tr:hover td.actcol{background:var(--row-hover)}
 /* ───────── state ───────── */
 let API_KEY='';
 let allVideos=[], viewList=[];
-let sortKey='cOut', sortDir=-1, formMode='all', noiseOff=false;
+let sortKey='impact', sortDir=-1, formMode='all', noiseOff=false;
 let currentMode='discover';
 let viewStyle='table';
 let renderLimit=100;
@@ -1212,11 +1222,41 @@ function gradeVal(m){
   return 'worst';
 }
 const GRADE_LABEL={great:'Great',good:'Good',normal:'Normal',bad:'Bad',worst:'Worst'};
+/* ── 터짐 지수 ──────────────────────────────────────────
+   채널배수와 조회/구독은 서로 다른 것을 잰다.
+     채널배수 = 이 채널 기준으로 이례적인가 (알고리즘이 밀었나)
+     조회/구독 = 구독자 밖으로 퍼졌나 (실제 도달 규모)
+   v2.3까지는 채널배수 하나만으로 등급을 매겨, 구독 2.7만 채널의 1.1만 조회 영상이
+   "채널배수 ×15.6 → Great"으로 찍히는 모순이 생겼다.
+   두 지표의 기하평균을 쓰면 한쪽만 커도 등급이 과장되지 않는다. */
+let gradeMode='impact';
+function computeImpact(v){
+  const a=v.cOut, b=v.vps;
+  if(a!=null&&b!=null)return Math.sqrt(Math.max(a,0.01)*Math.max(b,0.01));
+  if(a!=null)return a;      // 구독자 비공개 → 채널배수만
+  if(b!=null)return b;      // baseline 부족 → 조회/구독만
+  return null;
+}
+const BASIS_LABEL={impact:'터짐 지수 (채널배수 × 조회/구독)',cOut:'채널배수만',vps:'조회/구독만'};
 function applyGrade(v){
-  if(v.cOut!=null){v.g=gradeVal(v.cOut);v.gBasis='채널배수';}
-  else if(v.vps!=null){v.g=gradeVal(v.vps);v.gBasis='조회/구독';}
-  else{v.g='normal';v.gBasis='판정불가';}
+  v.impact=computeImpact(v);
+  let m=null,basis='판정불가';
+  if(gradeMode==='cOut'){m=v.cOut;basis='채널배수';}
+  else if(gradeMode==='vps'){m=v.vps;basis='조회/구독';}
+  else{
+    m=v.impact;
+    basis=(v.cOut!=null&&v.vps!=null)?'터짐 지수':(v.cOut!=null?'채널배수(구독 비공개)':'조회/구독(baseline 부족)');
+  }
+  v.g=m==null?'normal':gradeVal(m);
+  v.gBasis=basis;
   return v;
+}
+function setGradeMode(m){
+  gradeMode=m;
+  store('grade_mode',m);
+  allVideos.forEach(applyGrade);
+  if(sortKey==='impact'||sortKey==='cOut'||sortKey==='vps'){sortKey=m==='impact'?'impact':m;}
+  applyFilters();
 }
 
 /* ───────── 채널 유니버스 ───────── */
@@ -1721,7 +1761,7 @@ async function runDiscoverUniverse(){
     buildClusters(allVideos);
     allVideos.forEach(v=>dbPut('videos',v));
     tabData.discover={videos:allVideos,win:win.label};persistTab('discover');
-    currentMode='discover';sortKey='cOut';sortDir=-1;
+    currentMode='discover';sortKey='impact';sortDir=-1;
     setStatus(null);applyFilters();renderSteps();updUniCost();
     document.getElementById('tblCard').scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){setStatus(null);showErr(e.message);}
@@ -1850,7 +1890,7 @@ async function runDiscover(){
     tabData.discover={videos:allVideos,win:win.label};
     persistTab('discover');
     currentMode='discover';
-    sortKey='cOut';sortDir=-1;
+    sortKey='impact';sortDir=-1;
     setStatus(null);
     applyFilters();
     document.getElementById('tblCard').scrollIntoView({behavior:'smooth',block:'start'});
@@ -2182,7 +2222,7 @@ function setForm(mode){
   applyFilters();
 }
 function resetFilters(){
-  ['subMin','subMax','viewMin','viewMax','vidMax','outMin'].forEach(id=>document.getElementById(id).value='');
+  ['subMin','subMax','viewMin','viewMax','vidMax','outMin','vpsMin'].forEach(id=>document.getElementById(id).value='');
   const cf=document.getElementById('catFilter');if(cf)cf.value='';
   document.querySelectorAll('.gbtn').forEach(b=>b.classList.add('on'));
   setForm('all');
@@ -2196,6 +2236,7 @@ function presetGem(){
   document.getElementById('subMax').value=SET.gemSubs;
   document.getElementById('viewMin').value=SET.gemViews;
   document.getElementById('outMin').value=SET.gemOut;
+  document.getElementById('vpsMin').value=SET.gemVps;
   document.getElementById('icGem').classList.add('on');
   applyFilters();
 }
@@ -2209,6 +2250,7 @@ function presetBigLong(){
   resetFilters();
   document.getElementById('viewMin').value=50000;
   document.getElementById('outMin').value=3;
+  document.getElementById('vpsMin').value=1;   // 최소한 구독자 수만큼은 봐야 한다
   setForm('long');
   applyFilters();
 }
@@ -2236,7 +2278,7 @@ function applyFilters(){
     return;
   }
   const subMin=num('subMin'),subMax=num('subMax'),viewMin=num('viewMin'),viewMax=num('viewMax'),
-        vidMax=num('vidMax'),outMin=num('outMin');
+        vidMax=num('vidMax'),outMin=num('outMin'),vpsMin=num('vpsMin');
   const grades=new Set([...document.querySelectorAll('.gbtn.on')].map(b=>b.dataset.g));
   const catPick=document.getElementById('catFilter')?.value||'';
   viewList=allVideos.filter(v=>
@@ -2246,6 +2288,7 @@ function applyFilters(){
     (viewMax===null||v.views<=viewMax)&&
     (vidMax===null||v.vidCount<=vidMax)&&
     (outMin===null||(v.cOut!=null&&v.cOut>=outMin))&&
+    (vpsMin===null||(v.vps!=null&&v.vps>=vpsMin))&&
     (!noiseOff||!NOISE_CATS.has(v.catId))&&
     (!catPick||v.catId===catPick)&&
     grades.has(v.g)&&
@@ -2309,12 +2352,11 @@ function render(){
   document.getElementById('ideaCard').style.display='';
   renderInsights();
   renderHotWords();
-  ['views','subs','vps','cOut','baseN','lvph','rvph','accel','ageHours'].forEach(k=>{
+  ['views','subs','vps','cOut','impact','baseN','lvph','rvph','accel','ageHours'].forEach(k=>{
     const el=document.getElementById('a-'+k);
     if(el)el.textContent=sortKey===k?(sortDir===-1?'▼':'▲'):'';
   });
-  const basis=viewList.find(v=>v.gBasis)?.gBasis||'채널배수';
-  document.getElementById('gradeBasis').textContent='· 기준: '+basis;
+  document.getElementById('gradeBasis').textContent='· '+(BASIS_LABEL[gradeMode]||'');
   document.getElementById('cnt').textContent=viewList.length;
   document.getElementById('emptyMsg').style.display=viewList.length?'none':'block';
   const slice=viewList.slice(0,renderLimit);
@@ -2345,7 +2387,7 @@ function render(){
       <td class="num">${rvphCell(v)}</td>
       <td class="num">${accCell(v)}</td>
       <td class="num">${ageLabel(v.ageHours)}</td>
-      <td><span class="badge b-${v.g}">${GRADE_LABEL[v.g]}</span></td>
+      <td class="nowrap"><span class="badge b-${v.g}">${GRADE_LABEL[v.g]}</span>${v.impact!=null?`<div class="vel">지수 ${v.impact>=100?Math.round(v.impact):v.impact.toFixed(1)}</div>`:''}</td>
       <td class="date">${FORMAT_LABEL[v.format]} · ${v.date.slice(2).replace(/-/g,'.')}</td>
       <td class="actcol"><div class="actwrap">
         <button class="actbtn${BM.has(v.id)?' saved':''}" title="벤치마크 담기" onclick="openSave('${v.id}')">${BM.has(v.id)?'♥':'♡'}</button>
@@ -2390,6 +2432,7 @@ function galCard(v,isBoard){
         <span class="gs">구독 ${v.subs==null?'비공개':fmt(v.subs)}</span>
         <span class="gs${v.vps!=null&&v.vps>=3?' hi':''}">VPS ${v.vps==null?'—':'×'+v.vps.toFixed(1)}</span>
         <span class="gs${v.cOut!=null&&v.cOut>=5?' hi':''}">채널배수 ${v.cOut==null?'부족':'×'+v.cOut.toFixed(1)}</span>
+        <span class="gs${v.impact!=null&&v.impact>=10?' hi':''}">지수 ${v.impact==null?'—':(v.impact>=100?Math.round(v.impact):v.impact.toFixed(1))}</span>
         <span class="gs">VPH ${fmt(Math.round(v.lvph))}</span>
         <span class="gs">${ageLabel(v.ageHours)}</span>
         ${v.cluster>=2?`<span class="gs hi">🔥 ${v.cluster}채널</span>`:''}
@@ -2600,11 +2643,11 @@ function downloadCSV(rows,prefix){
 }
 function exportCSV(){
   if(!viewList.length){toast('내보낼 결과가 없습니다.');return;}
-  const rows=[['제목','채널','videoId','URL','조회수','구독자','조회수/구독자','채널배수','baseline표본','lifetimeVPH','recentVPH','가속도','경과시간(h)','채널총영상수','게시시간','형태','반복소재클러스터채널수','발견일']];
+  const rows=[['제목','채널','videoId','URL','조회수','구독자','조회수/구독자','채널배수','터짐지수','baseline표본','lifetimeVPH','recentVPH','가속도','경과시간(h)','채널총영상수','게시시간','형태','반복소재클러스터채널수','발견일']];
   viewList.forEach(v=>rows.push([
     v.title,v.channel,v.id,'https://www.youtube.com/watch?v='+v.id,
     v.views, v.subs??'', v.vps!=null?v.vps.toFixed(3):'',
-    v.cOut!=null?v.cOut.toFixed(3):'', v.baseN||'',
+    v.cOut!=null?v.cOut.toFixed(3):'', v.impact!=null?v.impact.toFixed(2):'', v.baseN||'',
     Math.round(v.lvph), v.rvph!=null?Math.round(v.rvph):'', v.accel!=null?v.accel.toFixed(3):'',
     v.ageHours.toFixed(1), v.vidCount, v.publishedAt, FORMAT_LABEL[v.format],
     v.cluster||'', kstDayStr(new Date(v.discoveredAt||Date.now()))
@@ -2652,6 +2695,7 @@ function aiRows(){
     `구독 ${v.subs==null?'비공개':v.subs.toLocaleString()}`,
     `VPS ${v.vps==null?'측정불가':'×'+v.vps.toFixed(1)}`,
     `채널배수 ${v.cOut==null?'baseline부족':'×'+v.cOut.toFixed(1)}`,
+    `터짐지수 ${v.impact==null?'—':v.impact.toFixed(1)}`,
     `기준표본 n=${v.baseN||0}`,
     `lifetimeVPH ${Math.round(v.lvph).toLocaleString()}/h`,
     `recentVPH ${v.rvph==null?'미측정':Math.round(v.rvph).toLocaleString()+'/h'}`,
@@ -2836,6 +2880,8 @@ window.addEventListener('DOMContentLoaded',async()=>{
   API_KEY=load('yt_api_key');
   if(API_KEY){document.getElementById('apiKey').value=API_KEY;keyOk();document.getElementById('keyCard').classList.add('closed');}
   if(load('theme')==='dark')setTheme('dark');
+  const savedMode=load('grade_mode');
+  if(savedMode&&BASIS_LABEL[savedMode]){gradeMode=savedMode;const el=document.getElementById('gradeModeSel');if(el)el.value=savedMode;}
   const gm=load('gm_api_key');
   if(gm)document.getElementById('gmKey').value=gm;
   ['mineSrc','mineCount','minePages'].forEach(id=>document.getElementById(id)?.addEventListener('change',updMineCost));
@@ -2962,6 +3008,28 @@ function renderGuide(){
     <h3>≤3분 후보와 실제 Shorts의 차이</h3>
     <p>2024-10-15부터 Shorts 판정에는 <b>3분 이하</b>뿐 아니라 <b>정사각형 또는 세로 화면비</b> 요건도 들어갑니다. Data API는 화면비를 주지 않으므로 <b>확정 판정이 불가능</b>합니다. 그래서 이 앱은 3분 이하를 <span class="gk">≤3분 후보</span>로만 표기하고, 3분 초과는 <span class="gk">Long</span>으로 표기합니다.</p>
     <p style="margin-top:8px">중요한 건 <b>baseline을 절대 섞지 않는다</b>는 점입니다. 쇼츠와 롱폼은 조회수 체급이 완전히 달라서, 섞으면 배수가 무의미해집니다. 한쪽 표본이 부족하면 다른 쪽으로 대체하지 않고 「Baseline 부족」으로 남깁니다.</p>
+  </div>
+
+  <div class="gsec">
+    <h3>터짐 지수 — 두 지표를 하나로 (v2.4)</h3>
+    <p>채널배수와 조회/구독은 <b>서로 다른 것</b>을 잽니다. 하나만 보고 등급을 매기면 반드시 모순이 생깁니다.</p>
+    <table class="gtable">
+      <tr><th>지표</th><th>재는 것</th><th>단독으로 볼 때의 함정</th></tr>
+      <tr><td>채널배수</td><td>이 채널 기준으로 이례적인가</td><td>평소 조회수가 바닥인 채널은 조금만 올라도 배수가 폭발</td></tr>
+      <tr><td>조회/구독</td><td>구독자 밖으로 퍼졌나</td><td>구독자가 적은 채널은 쉽게 커짐</td></tr>
+      <tr><td><b>터짐 지수</b></td><td>두 값의 <b>기하평균</b></td><td>한쪽만 커도 등급이 과장되지 않음</td></tr>
+    </table>
+    <p style="margin-top:10px">실제 사례로 검증한 결과입니다.</p>
+    <table class="gtable">
+      <tr><th>영상</th><th>조회 / 구독</th><th>VPS</th><th>채널배수</th><th>v2.3</th><th>v2.4</th></tr>
+      <tr><td>베트남 꿀 공세</td><td>29.8만 / 2.7만</td><td>×11.0</td><td>×345</td><td>Great</td><td><b>Great</b> (지수 61.7)</td></tr>
+      <tr><td>새도약기금</td><td>10.7만 / 9.8만</td><td>×1.1</td><td>×58.4</td><td>Great</td><td><b>Good</b> (지수 8.0)</td></tr>
+      <tr><td>CPTPP 가입</td><td>1.1만 / 2.7만</td><td>×0.4</td><td>×15.6</td><td><b style="color:var(--worst)">Great ❌</b></td><td><b>Normal</b> (지수 2.5)</td></tr>
+      <tr><td>가난한 사람은 왜 빚을</td><td>9,720 / 3,500</td><td>×2.8</td><td>×1.6</td><td>Normal</td><td>Normal (지수 2.1)</td></tr>
+    </table>
+    <p style="margin-top:10px">구독 2.7만 채널에서 1.1만 조회밖에 안 나온 영상이 「Great」로 찍히던 문제가 사라집니다. <b>기본 정렬도 터짐 지수</b>로 바뀌었습니다.</p>
+    <p style="margin-top:8px"><b>기준은 바꿀 수 있습니다.</b> 필터의 「성과도 기준」에서 <b>채널배수만</b> / <b>조회/구독만</b>으로 전환하면 예전 방식대로도 볼 수 있습니다. 구독자를 숨긴 채널은 채널배수만으로, baseline이 부족한 영상은 조회/구독만으로 자동 폴백합니다.</p>
+    <p style="margin-top:8px">「<b>조회/구독 ≥</b>」 필터도 새로 넣었습니다. 최소한 구독자 수만큼은 봐야 한다면 여기에 <b>1</b>을, 구독자 밖으로 확실히 퍼진 것만 보려면 <b>3</b>을 넣으세요.</p>
   </div>
 
   <div class="gsec">
