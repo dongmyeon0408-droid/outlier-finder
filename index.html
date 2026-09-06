@@ -435,7 +435,7 @@ tr:hover td.actcol{background:var(--row-hover)}
 
 <!-- NAV -->
 <nav class="nav">
-  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v2.2</span></span>
+  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v2.3</span></span>
   <div class="tabs">
     <button class="tab" id="tabCollect" onclick="switchTab('collect')">① 채널 모으기 <span class="tabdot" id="uniDot">0</span></button>
     <button class="tab on" id="tabDiscover" onclick="switchTab('discover')">② 오늘의 발견</button>
@@ -506,6 +506,8 @@ tr:hover td.actcol{background:var(--row-hover)}
     <div class="fg"><label>1차 후보 · 구독자 ≤</label><input type="number" id="setPreSubs" value="100000"></div>
     <div class="fg"><label>1차 후보 · 조회수 ≥</label><input type="number" id="setPreViews" value="5000"></div>
     <div class="fg"><label>baseline 최소 표본</label><input type="number" id="setBaseMin" value="8"></div>
+    <div class="fg"><label>baseline 최소 중앙조회수</label><input type="number" id="setBaseMinViews" value="500"></div>
+    <div class="fg"><label>채널당 결과 상한</label><input type="number" id="setPerChannelCap" value="3"></div>
     <div class="fg"><label>데이터 보관 (일)</label><input type="number" id="setRetain" value="30"></div>
     <div class="fg"><label>상세 보강 상한 (제목·썸네일)</label><input type="number" id="setHydrate" value="300"></div>
     <div class="fg"><label>재측정 최소 간격 (분)</label><input type="number" id="setSnapGap" value="20"></div>
@@ -596,6 +598,7 @@ tr:hover td.actcol{background:var(--row-hover)}
         <button class="btn btn-ink" onclick="addByHandle()">추가</button>
         <button class="gem" onclick="exportUniverse()">⬇ 백업</button>
         <button class="btn btn-out" onclick="document.getElementById('uniFile').click()">⬆ 복원</button>
+        <button class="btn btn-out" onclick="pruneUniverse()">🧹 저품질 채널 정리</button>
         <button class="btn btn-out" onclick="clearBaselineCache()">캐시 비우기</button>
         <button class="btn btn-out" onclick="clearUniverse()" style="color:var(--bad)">전체 삭제</button>
         <input type="file" id="uniFile" accept=".json" style="display:none" onchange="importUniverse(this)">
@@ -673,6 +676,11 @@ tr:hover td.actcol{background:var(--row-hover)}
           <option value="1" selected>호출당 50개</option>
           <option value="2">호출당 100개 (검색 2배)</option>
         </select>
+        <select id="discDur">
+          <option value="" selected>길이 전체</option>
+          <option value="medium">4~20분 (롱폼)</option>
+          <option value="long">20분 이상</option>
+        </select>
         <button class="btn btn-out" id="probeBtn" onclick="apiProbe()">🔎 API 1회 진단</button>
       </div>
     </div>
@@ -714,7 +722,7 @@ tr:hover td.actcol{background:var(--row-hover)}
 <!-- ═══ GUIDE ═══ -->
 <div class="panel" id="panelGuide">
 <section class="card">
-  <div class="eyebrow">사용 가이드 · v2.2 (2026.09)</div>
+  <div class="eyebrow">사용 가이드 · v2.3 (2026.09)</div>
   <div id="guideBody"></div>
 </section>
 </div>
@@ -770,6 +778,7 @@ tr:hover td.actcol{background:var(--row-hover)}
       <div class="gset">
         <button class="gem" onclick="presetGem()">💎 어제의 보석</button>
         <button class="gem" onclick="presetTiny()">🌱 초소형 채널</button>
+        <button class="gem" onclick="presetBigLong()">🎬 롱폼 대박</button>
         <button class="gem" onclick="presetAccel()">🚀 지금 가속 중</button>
         <button class="btn btn-out" onclick="resetFilters()" style="padding:9px 18px;font-size:13px">초기화</button>
       </div>
@@ -808,6 +817,8 @@ tr:hover td.actcol{background:var(--row-hover)}
   <div class="stat"><span class="k">평균 채널배수</span><span class="v em" id="sMult">—</span></div>
   <div class="stat"><span class="k">Great</span><span class="v em" id="sGreat">0</span></div>
 </div>
+
+<div class="warnbox" id="qualWarn" style="display:none"></div>
 
 <!-- 제목 역추출 -->
 <section class="card" id="hotWordsCard" style="display:none;margin-top:24px">
@@ -870,7 +881,7 @@ tr:hover td.actcol{background:var(--row-hover)}
 </section>
 
 <footer>
-  <b>겨울잠 아웃라이어 파인더 v2.2</b>
+  <b>겨울잠 아웃라이어 파인더 v2.3</b>
   <span>YouTube Data API v3 · 모든 데이터는 당신의 브라우저 안에서만 처리됩니다 · 채널배수는 누적 조회수 기반 상대 성과, VPH는 초기 성장 속도 — 서로 다른 것을 재는 지표입니다</span>
 </footer>
 </div>
@@ -907,7 +918,8 @@ function load(k){try{return localStorage.getItem(k)??mem[k]??''}catch(e){return 
 const DEF_SET={
   limSearch:100, limCore:10000, limStats:10000,
   gemHours:48, gemSubs:50000, gemViews:10000, gemVps:3, gemOut:5,
-  preSubs:100000, preViews:5000, baseMin:8, retain:30, hydrate:300, snapGap:20
+  preSubs:100000, preViews:5000, baseMin:8, retain:30, hydrate:300, snapGap:20,
+  baseMinViews:500, perChannelCap:3
 };
 let SET={...DEF_SET};
 function loadSettings(){
@@ -1302,6 +1314,16 @@ function renderSteps(){
   });
 }
 function delChannel(id){delete UNI[id];saveUniverse();}
+/* 추천 채널 확장으로 들어온 소형·휴면 채널은 스캔 쿼터만 축낸다 */
+function pruneUniverse(){
+  const all=uniArray();
+  const kill=all.filter(c=>(c.subscriberCount!=null&&c.subscriberCount<1000)||(c.videoCount||0)<10);
+  if(!kill.length){toast('정리할 채널이 없습니다.');return;}
+  if(!confirm(`구독자 1,000명 미만 또는 영상 10개 미만인 채널 ${kill.length}개를 삭제할까요?\n(전체 ${all.length}개 → ${all.length-kill.length}개)`))return;
+  kill.forEach(c=>delete UNI[c.channelId]);
+  saveUniverse();
+  toast(`${kill.length}개 채널을 정리했습니다.`);
+}
 function clearUniverse(){
   if(!confirm('등록된 채널 '+Object.keys(UNI).length+'개를 모두 삭제할까요? 되돌릴 수 없습니다.'))return;
   UNI={};saveUniverse();
@@ -1547,6 +1569,9 @@ function computeOutlier(v,base){
   if(pool.length<SET.baseMin)return v;      // 표본 부족 → 숫자를 억지로 만들지 않는다
   const med=median(pool.map(b=>b.views));
   v.baseMed=med;
+  /* 평소 300회 나오던 채널이 3,000회를 찍으면 ×10이지만 벤치마킹 가치는 없다.
+     기준선 자체가 너무 낮으면 배수를 계산하지 않고 '기준 미달'로 표시한다. */
+  if(med<SET.baseMinViews){v.baseWeak=true;return v;}
   if(med>0)v.cOut=v.views/med;
   return v;
 }
@@ -1635,6 +1660,23 @@ async function collectFromUniverse(targets,perCh,cutoff,onStep){
   saveUniverse();
   return rows;
 }
+/* 1차 pre-filter — 절대 규모가 없는 영상은 상대 배수가 아무리 커도 벤치마킹 가치가 없다 */
+function applyPreFilter(rows){
+  return rows.filter(v=>
+    (v.subs==null||v.subs<=SET.preSubs)&&
+    v.views>=SET.preViews
+  );
+}
+/* 한 채널이 결과를 도배하지 못하도록 채널당 상위 N개만 남긴다 */
+function capPerChannel(rows){
+  const cap=Math.max(1,SET.perChannelCap);
+  const by={};const out=[];
+  [...rows].sort((a,b)=>(b.cOut??0)-(a.cOut??0)).forEach(v=>{
+    by[v.channelId]=(by[v.channelId]||0)+1;
+    if(by[v.channelId]<=cap)out.push(v);
+  });
+  return out;
+}
 async function hydrateTop(rows,limit,fromPct){
   rows.sort((a,b)=>(b.cOut??0)-(a.cOut??0));
   const top=rows.slice(0,limit);
@@ -1665,11 +1707,15 @@ async function runDiscoverUniverse(){
     if(!targets.length)throw new Error('유니버스에 채널이 없습니다. 「채널 관리」에서 핸들을 추가하거나 「영상 발굴」을 한 번 돌리세요.');
     DIAG=[];diagAdd(`유니버스 경로 · 채널 ${targets.length}개 · 검색 쿼터 0`,targets.length,null);renderDiag();
     const perCh=Number(document.getElementById('scRecent').value);
-    const rows=await collectFromUniverse(targets,perCh,cutoff,
+    const raw=await collectFromUniverse(targets,perCh,cutoff,
       (d,t)=>setStatus(`유니버스 스캔 중... (${d}/${t} 채널) · 구간 ${win.label}`,(d/t)*72));
-    if(!rows.length)throw new Error(`${targets.length}개 채널 중 해당 구간(${win.label})에 올라온 영상이 없습니다. 기간을 「최근 7일」로 넓혀 보세요.`);
+    if(!raw.length)throw new Error(`${targets.length}개 채널 중 해당 구간(${win.label})에 올라온 영상이 없습니다. 기간을 「최근 7일」로 넓혀 보세요.`);
+    /* 검색 경로와 동일한 1차 pre-filter를 적용한다.
+       v2.2까지 이 경로에만 하한이 없어, 조회수 100회짜리 영상이 "채널배수 ×11"로 상위를 채웠다. */
+    const rows=applyPreFilter(raw);
+    if(!rows.length)throw new Error(`수집된 ${raw.length}개 영상이 모두 1차 기준(조회수 ${SET.preViews.toLocaleString()} 이상)에 미달했습니다. ⚙설정에서 「1차 후보 · 조회수 ≥」를 낮추거나, STEP 1에서 채널을 더 모으세요.`);
     setStatus('상위 후보 제목·썸네일 수집 중...',76);
-    const final=await hydrateTop(rows,SET.hydrate,76);
+    const final=await hydrateTop(capPerChannel(rows),SET.hydrate,76);
     if(!final.length)throw new Error('상세 정보를 가져오지 못했습니다.');
     allVideos=final;
     buildClusters(allVideos);
@@ -1722,8 +1768,10 @@ async function runDiscover(){
       diagAdd(label,got,null);
       return {got,err:null};
     };
+    const dur=document.getElementById('discDur').value;
     const baseP={part:'id',type:'video',maxResults:'50',regionCode:region,
-                 publishedAfter:win.after,publishedBefore:win.before};
+                 publishedAfter:win.after,publishedBefore:win.before,
+                 ...(dur?{videoDuration:dur}:{})};
 
     /* 1-A 프로브: 카테고리 없이 1회. q 없는 검색이 이 프로젝트에서 통하는지 먼저 확인해
        실패 시 카테고리 10회를 낭비하지 않는다. */
@@ -1796,7 +1844,7 @@ async function runDiscover(){
 
     /* STEP 8~9 — 지표 정리·클러스터·출력 */
     setStatus('반복 소재 탐지 중...',96);
-    allVideos=target;
+    allVideos=capPerChannel(target);
     buildClusters(allVideos);
     allVideos.forEach(v=>dbPut('videos',v));
     tabData.discover={videos:allVideos,win:win.label};
@@ -2156,6 +2204,14 @@ function presetTiny(){
   document.getElementById('subMax').value=10000;
   applyFilters();
 }
+/* 절대 조회수와 상대 배수를 동시에 요구 — "실제로 터진 롱폼"만 남긴다 */
+function presetBigLong(){
+  resetFilters();
+  document.getElementById('viewMin').value=50000;
+  document.getElementById('outMin').value=3;
+  setForm('long');
+  applyFilters();
+}
 function presetAccel(){
   resetFilters();
   accelOnly=true;
@@ -2226,7 +2282,7 @@ function showMore(){renderLimit+=100;render();}
 /* ───────── 렌더 ───────── */
 function cellNum(x,digits=0){return x==null||isNaN(x)?'<span class="muted">—</span>':fmt(Number(x).toFixed(digits));}
 function outCell(v){
-  if(v.cOut==null)return `<span class="muted nowrap">Baseline 부족</span>`;
+  if(v.cOut==null)return `<span class="muted nowrap">${v.baseWeak?'기준 미달':'Baseline 부족'}</span>`;
   const col=v.cOut>=10?'var(--signal)':v.cOut>=3?'var(--good)':'var(--slate)';
   return `<span style="color:${col}">×${v.cOut>=100?Math.round(v.cOut):v.cOut.toFixed(1)}</span>`;
 }
@@ -2310,6 +2366,14 @@ function render(){
   document.getElementById('sMed').textContent=fmt(n?views[Math.floor(n/2)]:0);
   document.getElementById('sMult').textContent=outs.length?'×'+(outs.reduce((s,x)=>s+Math.min(x,999),0)/outs.length).toFixed(1):'—';
   document.getElementById('sGreat').textContent=viewList.filter(v=>v.g==='great').length;
+  const med=n?views[Math.floor(n/2)]:0;
+  const warn=document.getElementById('qualWarn');
+  if(warn){
+    if(n&&med<3000){
+      warn.style.display='';
+      warn.innerHTML=`⚠ <b>중앙값 조회수가 ${fmt(med)}회로 낮습니다.</b> 등록된 채널 대부분이 조회수가 잘 안 나오는 채널이라는 뜻입니다 — 지금 화면의 「채널배수」는 작은 숫자 위에서 계산된 것이라 벤치마킹 가치가 낮습니다. <b>STEP 1에서 채널을 더 모으거나</b>, ⚙설정의 「1차 후보 · 조회수 ≥」를 올리세요.`;
+    }else warn.style.display='none';
+  }
 }
 function galCard(v,isBoard){
   const saved=BM.has(v.id);
@@ -2898,6 +2962,20 @@ function renderGuide(){
     <h3>≤3분 후보와 실제 Shorts의 차이</h3>
     <p>2024-10-15부터 Shorts 판정에는 <b>3분 이하</b>뿐 아니라 <b>정사각형 또는 세로 화면비</b> 요건도 들어갑니다. Data API는 화면비를 주지 않으므로 <b>확정 판정이 불가능</b>합니다. 그래서 이 앱은 3분 이하를 <span class="gk">≤3분 후보</span>로만 표기하고, 3분 초과는 <span class="gk">Long</span>으로 표기합니다.</p>
     <p style="margin-top:8px">중요한 건 <b>baseline을 절대 섞지 않는다</b>는 점입니다. 쇼츠와 롱폼은 조회수 체급이 완전히 달라서, 섞으면 배수가 무의미해집니다. 한쪽 표본이 부족하면 다른 쪽으로 대체하지 않고 「Baseline 부족」으로 남깁니다.</p>
+  </div>
+
+  <div class="gsec">
+    <h3>「배수는 큰데 실속 없는 영상」을 거르는 법 (v2.3)</h3>
+    <p>채널배수는 <b>상대 지표</b>입니다. 평소 300회 나오던 채널이 3,900회를 찍으면 ×13이 되지만, 절대 규모로는 아무것도 아닙니다. 그래서 <b>절대 조회수 하한을 반드시 함께 걸어야</b> 합니다.</p>
+    <table class="gtable">
+      <tr><th>장치</th><th>기본값</th><th>역할</th></tr>
+      <tr><td>1차 후보 · 조회수 ≥</td><td>5,000</td><td>절대 규모가 없는 영상을 아예 수집 단계에서 제외</td></tr>
+      <tr><td>baseline 최소 중앙조회수</td><td>500</td><td>기준선 자체가 낮은 채널은 배수를 계산하지 않고 <b>「기준 미달」</b>로 표시</td></tr>
+      <tr><td>채널당 결과 상한</td><td>3</td><td>한 채널이 결과를 도배하지 못하게 제한</td></tr>
+      <tr><td>🎬 롱폼 대박</td><td>—</td><td>롱폼 + 조회 5만↑ + 배수 3↑ 을 한 번에</td></tr>
+    </table>
+    <p style="margin-top:10px"><b>중앙값 조회수</b>를 항상 확인하세요. 이 값이 3,000회 미만이면 화면 위에 경고가 뜹니다. 등록된 채널 대부분이 조회수가 안 나오는 채널이라는 신호이고, 그 상태의 채널배수는 신뢰할 수 없습니다.</p>
+    <p style="margin-top:8px"><b>쇼츠가 결과를 잠식할 때</b>는 형태 필터를 <b>「롱폼」</b>으로 바꾸세요. 쇼츠는 채널 중앙값이 낮아 배수가 쉽게 부풀려집니다.</p>
   </div>
 
   <div class="gsec">
