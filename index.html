@@ -963,11 +963,11 @@ tr:hover td.actcol{background:var(--row-hover)}
 /* ───────── state ───────── */
 let API_KEY='';
 let allVideos=[], viewList=[];
-let sortKey='benchScore', sortDir=-1, formMode=(load('pref_form')||'long'), noiseOff=false;
+let sortKey='benchScore', sortDir=-1, formMode='long', noiseOff=false;
 let currentMode='discover';
 let viewStyle='gallery';
 let renderLimit=100;
-let krOnly=(load('pref_kr')||'1')==='1';   /* v3.2: 기본 켬 · 고정 */
+let krOnly=true;   /* v3.2: 기본 켬 · 고정 — 저장값은 init에서 읽는다 (mem 선언 전 load() 호출 금지) */
 let clusters=[];
 let lastIdeas=[];
 const tabData={discover:null};
@@ -3161,6 +3161,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   updDiscRange();
   loadCategories('KR').then(()=>{try{renderCatOptions();}catch(e){}});
   await restoreTabs();
+  formMode=load('pref_form')||'long';krOnly=(load('pref_kr')||'1')==='1';
   setForm(formMode);document.getElementById('krOnlyBtn').classList.toggle('on',krOnly);
   await loadBoard();
   await loadSnapMeta();
