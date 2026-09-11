@@ -832,6 +832,7 @@ tr:hover td.actcol{background:var(--row-hover)}
         <button class="gem" onclick="presetGem()">💎 어제의 보석</button>
         <button class="gem" onclick="presetTiny()">🌱 초소형 채널</button>
         <button class="gem" onclick="presetRookie()">🐣 신생 채널 대박</button>
+        <button class="gem" onclick="presetFresh()" title="업로드 7일 이내 · 조회/구독 ×3↑ · 시간당 조회수 순">🆕 이번 주 급상승</button>
         <button class="gem" onclick="presetBigLong()">🎬 롱폼 대박</button>
         <button class="gem" onclick="presetAccel()">🚀 지금 가속 중</button>
         <button class="btn btn-out" onclick="resetFilters()" style="padding:9px 18px;font-size:13px">초기화</button>
@@ -2191,14 +2192,14 @@ function resetFilters(){
   document.querySelectorAll('.gbtn').forEach(b=>b.classList.add('on'));
   setForm(load('pref_form')||'long');   /* v3.2: 초기화해도 롱폼·한국어 제목 고정값은 유지 */
   document.querySelectorAll('.icard').forEach(c=>c.classList.remove('on'));
-  accelOnly=false;gemOnly=false;
+  accelOnly=false;gemOnly=false;freshOnly=false;
   noiseOff=(load('pref_noise')||'1')==='1';   /* v3.2.1: 노이즈 제거는 고정 기본값 (초기화해도 유지) */
   document.getElementById('fNoise').classList.toggle('on',noiseOff);
   document.getElementById('krOnlyBtn').classList.toggle('on',krOnly);
   document.getElementById('applyFloor').checked=true;
   applyFilters();
 }
-let accelOnly=false,gemOnly=false;
+let accelOnly=false,gemOnly=false,freshOnly=false;
 function presetGem(){
   resetFilters();
   document.getElementById('subMax').value=SET.gemSubs;
@@ -2214,6 +2215,15 @@ function presetTiny(){
   applyFilters();
 }
 /* 신생 채널 대박 — 총 영상 수가 적은데 절대 조회수가 나온 영상. 채널배수가 없어도 최우선 벤치마킹 재료 */
+/* v3.2.1 🆕 이번 주 급상승 — 업로드 7일 이내 · 조회/구독 ×3↑ · VPH(시간당 조회) 순 정렬 */
+function presetFresh(){
+  resetFilters();
+  freshOnly=true;
+  document.getElementById('vpsMin').value=3;
+  document.getElementById('viewMin').value=SET.gemViews;
+  sortKey='lvph';sortDir=-1;
+  applyFilters();
+}
 function presetRookie(){
   resetFilters();
   sortKey='benchScore';sortDir=-1;
@@ -2266,6 +2276,7 @@ function filterReasons(v){
   if(krOnly&&hangulRatio(v.title)<0.3)reasons.push('한국어 제목');
   if(accelOnly&&!isAccel(v))reasons.push('가속도');
   if(gemOnly&&!isGem(v))reasons.push('보석 조건·48시간');
+  if(freshOnly&&!(v.ageHours<=168))reasons.push('업로드 7일 초과');
   const grades=new Set([...document.querySelectorAll('.gbtn.on')].map(b=>b.dataset.g));
   if(!grades.has(v.g))reasons.push('성과도');
   return reasons;
