@@ -824,7 +824,7 @@ tr:hover td.actcol{background:var(--row-hover)}
     </div>
     <div class="fg">
       <label>노이즈 제거</label>
-      <button class="btn btn-out" id="fNoise" onclick="toggleNoise()" style="padding:7px 16px;font-size:13px">🎵 음악·MV·영화·스포츠 제외</button>
+      <button class="btn btn-out" id="fNoise" onclick="toggleNoise()" style="padding:7px 16px;font-size:13px">🎵 음악·MV·스포츠·라이브·90분↑ 제외</button>
     </div>
     <div class="fg">
       <label>원클릭</label>
@@ -1640,7 +1640,7 @@ function buildVideo(v,ch){
     catId:v.snippet.categoryId||'',
     subs, vidCount:ch?ch.videoCount:0, uploads:ch?ch.uploadsPlaylist:'',
     vps:(subs!=null&&subs>0)?views/subs:null,          // 구독자 비공개면 가짜값 대신 null
-    cOut:null, baseN:0, baseMed:0,observedAt:Date.now(),live:v.snippet.liveBroadcastContent||'none',
+    cOut:null, baseN:0, baseMed:0,observedAt:Date.now(),live:v.snippet.liveBroadcastContent||'none',wasLive:!!v.liveStreamingDetails,
     ageHours, lvph:views/Math.max(ageHours,1),
     rvph:null, accel:null, snapAt:null, cluster:0,
     discoveredAt:Date.now()
@@ -1652,7 +1652,7 @@ async function fetchVideoDetails(ids,onStep){
   const batches=[];
   for(let i=0;i<ids.length;i+=50)batches.push(ids.slice(i,i+50));
   const res=await inBatches(batches,4,async b=>{
-    const j=await apiGet('videos',{part:'snippet,statistics,contentDetails',id:b.join(',')},'core');
+    const j=await apiGet('videos',{part:'snippet,statistics,contentDetails,liveStreamingDetails',id:b.join(',')},'core');
     return j.items||[];
   },onStep);
   return res.flat();
@@ -1711,7 +1711,7 @@ async function getBaseline(channelId,uploads,want,force=false){
     id:v.id,publishedAt:v.snippet.publishedAt,views:Number(v.statistics?.viewCount)||0,
     dur:parseDur(v.contentDetails.duration),title:v.snippet.title||'',
     thumb:v.snippet.thumbnails?.medium?.url||v.snippet.thumbnails?.default?.url||'',
-    catId:v.snippet.categoryId||'',live:v.snippet.liveBroadcastContent||'none',
+    catId:v.snippet.categoryId||'',live:v.snippet.liveBroadcastContent||'none',wasLive:!!v.liveStreamingDetails,
     ...statsRecord(v.statistics||{}),observedAt:Date.now()
   }));
   if(items.length===new Set(ids).size)await dbPut('baselines',{channelId,vids,fetchedAt:Date.now(),requested:want,exhausted,schema:3});
@@ -2272,6 +2272,7 @@ function filterReasons(v){
   const cat=document.getElementById('catFilter')?.value||'';
   if(cat&&v.catId!==cat)reasons.push('장르');
   if(noiseOff&&NOISE_CATS.has(v.catId))reasons.push('노이즈');
+  if(noiseOff&&(v.wasLive||v.dur>5400))reasons.push(v.wasLive?'라이브 다시보기':'90분 초과');
   if(formMode!=='all'&&v.format!==formMode)reasons.push('형태');
   if(krOnly&&hangulRatio(v.title)<0.3)reasons.push('한국어 제목');
   if(accelOnly&&!isAccel(v))reasons.push('가속도');
