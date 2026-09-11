@@ -454,7 +454,7 @@ tr:hover td.actcol{background:var(--row-hover)}
 
 <!-- NAV -->
 <nav class="nav">
-  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v3.2</span></span>
+  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v3.2.1</span></span>
   <div class="tabs">
     <button class="tab" id="tabCollect" onclick="switchTab('collect')">① 채널 관리 <span class="tabdot" id="uniDot">0</span></button>
     <button class="tab on" id="tabDiscover" onclick="switchTab('discover')">② 영상 발견</button>
@@ -663,7 +663,7 @@ tr:hover td.actcol{background:var(--row-hover)}
 
   <button class="primarybtn" id="hybridBtn" onclick="runDiscovery('hybrid')">작은 채널의 히트 영상 찾기<span class="sub">새 영상 검색 + 등록 채널 스캔 · 처음부터 바로 실행</span></button>
   <div class="row" style="margin-top:16px">
-    <label>탐색 주제 <select id="discTopic"><option value="mix">투자 + 타 장르 영감</option><option value="money">투자·머니</option><option value="life">생활·자기계발</option></select></label>
+    <label>탐색 주제 <select id="discTopic"><option value="money" selected>투자·머니 (고정 기본)</option><option value="mix">투자 + 타 장르 영감</option><option value="life">생활·자기계발</option></select></label>
     <label>검색 예산 <select id="searchBudget"><option value="12">12회 · 빠르게</option><option value="24" selected>24회 · 균형</option><option value="40">40회 · 넓게</option></select></label>
     <label><input type="checkbox" id="forceFresh" checked> 최신 조회수로 스캔</label>
     <button class="btn btn-out" id="uniDiscBtn" onclick="runDiscoverUniverse()">등록 채널만 · 검색 0회</button>
@@ -1527,8 +1527,11 @@ function importUniverse(inp){
   r.onload=()=>{
     try{
       const d=JSON.parse(r.result);let add=0;
+      const n=Object.keys(d).length,cur=Object.keys(UNI).length;
+      const replace=cur>0&&confirm(`파일 ${n.toLocaleString()}개 · 현재 ${cur.toLocaleString()}개\n\n[확인] = 교체 (현재 목록을 지우고 파일로 바꿈)\n[취소] = 합치기 (없는 채널만 추가)`);
+      if(replace)UNI={};
       Object.entries(d).forEach(([id,c])=>{if(!UNI[id]){UNI[id]=c;add++;}});
-      saveUniverse();toast('채널 '+add+'개를 추가했습니다.');
+      saveUniverse();toast(replace?`교체 완료 · 채널 ${Object.keys(UNI).length.toLocaleString()}개`:'채널 '+add+'개를 추가했습니다.');
     }catch(e){showErr('백업 파일을 읽지 못했습니다.');}
     inp.value='';
   };
@@ -2174,7 +2177,7 @@ function similarTo(v,pool,limit=10){
 /* ───────── 필터 ───────── */
 const NOISE_CATS=new Set(['1','10','17','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44']);
 function num(id){const el=document.getElementById(id);const v=el?el.value:'';return v===''?null:Number(v);}
-function toggleNoise(){noiseOff=!noiseOff;document.getElementById('fNoise').classList.toggle('on',noiseOff);applyFilters();}
+function toggleNoise(){noiseOff=!noiseOff;store('pref_noise',noiseOff?'1':'0');document.getElementById('fNoise').classList.toggle('on',noiseOff);applyFilters();}
 function toggleGrade(btn){btn.classList.toggle('on');applyFilters();}
 function setForm(mode){
   formMode=mode;store('pref_form',mode);   /* v3.2: 형태 선택은 고정 기본값으로 저장 */
@@ -2189,8 +2192,8 @@ function resetFilters(){
   setForm(load('pref_form')||'long');   /* v3.2: 초기화해도 롱폼·한국어 제목 고정값은 유지 */
   document.querySelectorAll('.icard').forEach(c=>c.classList.remove('on'));
   accelOnly=false;gemOnly=false;
-  noiseOff=false;
-  document.getElementById('fNoise').classList.remove('on');
+  noiseOff=(load('pref_noise')||'1')==='1';   /* v3.2.1: 노이즈 제거는 고정 기본값 (초기화해도 유지) */
+  document.getElementById('fNoise').classList.toggle('on',noiseOff);
   document.getElementById('krOnlyBtn').classList.toggle('on',krOnly);
   document.getElementById('applyFloor').checked=true;
   applyFilters();
@@ -3161,7 +3164,8 @@ window.addEventListener('DOMContentLoaded',async()=>{
   updDiscRange();
   loadCategories('KR').then(()=>{try{renderCatOptions();}catch(e){}});
   await restoreTabs();
-  formMode=load('pref_form')||'long';krOnly=(load('pref_kr')||'1')==='1';
+  formMode=load('pref_form')||'long';krOnly=(load('pref_kr')||'1')==='1';noiseOff=(load('pref_noise')||'1')==='1';
+  document.getElementById('fNoise').classList.toggle('on',noiseOff);
   setForm(formMode);document.getElementById('krOnlyBtn').classList.toggle('on',krOnly);
   await loadBoard();
   await loadSnapMeta();
