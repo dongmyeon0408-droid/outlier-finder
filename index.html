@@ -454,7 +454,7 @@ tr:hover td.actcol{background:var(--row-hover)}
 
 <!-- NAV -->
 <nav class="nav">
-  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v3.2.1</span></span>
+  <span class="logo"><i></i>겨울잠 아웃라이어 파인더<span class="ver">v3.3</span></span>
   <div class="tabs">
     <button class="tab" id="tabCollect" onclick="switchTab('collect')">① 채널 관리 <span class="tabdot" id="uniDot">0</span></button>
     <button class="tab on" id="tabDiscover" onclick="switchTab('discover')">② 영상 발견</button>
@@ -1442,7 +1442,35 @@ const PRUNE_RULES={
   tiny:{label:'🌱 소형·휴면',desc:'구독 1,000 미만 또는 영상 10개 미만 — 신생 히트 채널도 포함되므로 신중히 선택',
     test:c=>(c.subscriberCount!=null&&c.subscriberCount<1000)||(c.videoCount||0)<10}
 };
-let pruneOn={foreign:false,huge:true,tiny:false};
+/* ── v3.3 주제 외 채널 자동 분류 ─────────────────────────────
+   채널명만으로는 「그날, 나는」「세월의 이야기」 같은 AI 사연·야담 채널을 못 잡는다.
+   스캔 때 받아 둔 채널별 최근 영상 제목(baselines 캐시)과 수집 후보 제목으로 채널을 분류한다.
+   경제·재테크 제목 비율이 낮거나 사연류 제목 비율이 높으면 삭제 후보. */
+const TOPIC_KW=['경제','재테크','투자','주식','부동산','아파트','청약','분양','경매','부업','머니','연금','노후','은퇴','자산','금융','증권','etf','배당','코인','비트코인','세금','세무','절세','월급','직장인','퇴사','이직','창업','사업','장사','자영업','가계부','저축','절약','부자','대출','금리','환율','달러','임대','건물','상가','토지','재건축','재개발','전세','월세','수익','통장','현금','소득','상속','증여','보험','연봉','생활비','집값','매출','물가','인플레','경기','기업','반도체','삼성전자','하이닉스','나스닥','s&p','슈드','schd','qqq','현금흐름','파이어','돈','억','만원','만 원','%'];
+const OFF_KW=['사연','야담','오디오북','옛날이야기','민담','설화','수면','며느리','시어머니','시아버지','시댁','사위','장모','상견례','친정','남편이','아내가','전남편','이혼','불륜','상간','재혼','황혼','회장님','회장 부인','사직서','회장이','통쾌','사이다','반전','최후','참교육','갑질','스케치코미디','#shorts','쇼츠','명언','니체','쇼펜하우어','탈무드','장자','칼 융','잠재의식','끌어당김','우주에','걸그룹','아이돌','예능','드라마','영화','애니','게임','먹방','레시피','브이로그','vlog','골프','축구','야구','국힙','래퍼','트로트','전공의','ai短剧','재벌','환생','회귀','전쟁의 신','미녀','절세미인'];
+let TOPIC_IDX={};
+async function buildTopicIndex(){
+  const acc={};
+  const add=(cid,title)=>{if(!cid||!title)return;const a=acc[cid]||(acc[cid]={n:0,t:0,o:0});const l=title.toLowerCase();a.n++;if(TOPIC_KW.some(k=>l.includes(k)))a.t++;if(OFF_KW.some(k=>l.includes(k)))a.o++;};
+  try{(await dbAll('baselines')).forEach(b=>(b.vids||[]).forEach(v=>add(b.channelId,v.title)));}catch(e){}
+  allVideos.forEach(v=>add(v.channelId,v.title));
+  TOPIC_IDX={};
+  Object.entries(acc).forEach(([cid,a])=>{TOPIC_IDX[cid]={n:a.n,topic:a.t/a.n,off:a.o/a.n};});
+  return TOPIC_IDX;
+}
+function topicVerdict(c){
+  const i=TOPIC_IDX[c.channelId];
+  if(!i||i.n<5)return null;                       // 제목 표본 5개 미만이면 판단 안 함
+  const nameOff=OFF_KW.some(k=>(c.channelTitle||'').toLowerCase().includes(k));
+  const nameTopic=TOPIC_KW.slice(0,60).some(k=>(c.channelTitle||'').toLowerCase().includes(k));
+  if(i.off>=0.3)return {why:`사연류 제목 ${Math.round(i.off*100)}%`};
+  if(i.topic<0.15&&!nameTopic)return {why:`경제 제목 ${Math.round(i.topic*100)}%`};
+  if(nameOff&&i.topic<0.3)return {why:'채널명+제목'};
+  return null;
+}
+PRUNE_RULES.offtopic={label:'🚫 주제 외 채널',desc:'최근 영상 제목 기준 — 경제·재테크 제목 15% 미만 또는 사연·예능류 30% 이상 (제목 5개↑ 확보된 채널만 판정)',
+  test:c=>!!topicVerdict(c)};
+let pruneOn={foreign:false,huge:true,tiny:false,offtopic:true};
 function pruneMatch(){
   const all=uniArray();
   const hit=[];
@@ -1452,9 +1480,11 @@ function pruneMatch(){
   });
   return hit;
 }
-function openPrune(){
+async function openPrune(){
   const all=uniArray();
   if(!all.length){toast('등록된 채널이 없습니다.');return;}
+  setStatus('영상 제목으로 채널 주제 분류 중...',2);
+  await buildTopicIndex();setStatus(null);
   openModal('채널 정리',`
     <p class="subnote" style="margin-bottom:16px">전체 <b>${all.length.toLocaleString()}개</b> 중 삭제할 기준을 고르세요. 아래 목록에서 <b>개별 해제</b>할 수 있습니다. 삭제 전에 <b>⬇ 백업</b>을 권합니다.</p>
     <div class="prunegrid" id="pruneCards"></div>
@@ -1484,7 +1514,7 @@ function renderPrune(){
     ? hit.sort((a,b)=>(b.subscriberCount||0)-(a.subscriberCount||0)).slice(0,500).map(c=>
         `<label class="prow"><input type="checkbox" checked data-cid="${c.channelId}">
          <span class="pnm">${esc(c.channelTitle)}</span>
-         ${c.tags.map(t=>`<span class="ptag">${PRUNE_RULES[t].label.replace(/^\S+\s/,'')}</span>`).join('')}
+         ${c.tags.map(t=>`<span class="ptag">${t==='offtopic'?(topicVerdict(c)?.why||'주제 외'):PRUNE_RULES[t].label.replace(/^\S+\s/,'')}</span>`).join('')}
          <span class="psb">구독 ${c.subscriberCount==null?'비공개':fmt(c.subscriberCount)}</span></label>`).join('')
       +(hit.length>500?`<div class="uni-empty">상위 500개만 표시 · 삭제는 ${hit.length.toLocaleString()}개 전체에 적용됩니다</div>`:'')
     : '<div class="uni-empty">선택한 기준에 해당하는 채널이 없습니다.</div>';
